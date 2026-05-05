@@ -9,24 +9,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: 18
 
-      - run: npm install
+      - name: Install deps
+        run: npm install
 
-      - run: npx cap add android
+      - name: Install Capacitor CLI
+        run: npm install @capacitor/cli @capacitor/core @capacitor/android
 
-      - run: npx cap sync android
+      - name: Init Android
+        run: npx cap add android || true
 
-      - run: |
+      - name: Sync
+        run: npx cap sync android
+
+      - name: Build APK
+        run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
         with:
           name: AirAware-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk

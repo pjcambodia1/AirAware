@@ -1,0 +1,16 @@
+{
+  "name": "airaware",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "echo \"static\"",
+    "sync": "npx cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/core": "latest",
+    "@capacitor/android": "latest"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "latest"
+  }
+}

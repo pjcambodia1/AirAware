@@ -1,0 +1,8 @@
+{
+  "appId": "com.airaware.app",
+  "appName": "AirAware",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}

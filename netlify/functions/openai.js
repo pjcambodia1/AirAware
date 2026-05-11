@@ -70,7 +70,7 @@ Return JSON only with: headline, summary, bpNote, bodyNote, suggestions, confide
         diagnostics: {
           version: "1.0",
           source: "airaware-netlify",
-          model: "gpt-5.4-mini"
+          model: "gpt-4.1-mini"
         }
       })
     };

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- AirAware v65: Wellness report API routed to https://fantastic-valkyrie-594c13.netlify.app/.netlify/functions/wellness-report -->
+<!-- AirAware v65: Wellness report API routed to /.netlify/functions/openai -->
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
@@ -546,7 +546,7 @@
           <div><label>Age range</label><select id="ageGroup"><option value="adult">Adult</option><option value="young_adult">Young adult</option><option value="senior">Senior</option><option value="minor">Teen/minor</option></select></div>
           <div><label>BP profile</label><select id="bpProfileSelect"><option value="auto">Auto from BP input</option><option value="low">Low BP tendency</option><option value="average">Average BP</option><option value="high">High BP tendency</option><option value="unknown">Unknown</option></select></div>
           <div><label>Current symptoms</label><select id="symptomSelect"><option value="none">None</option><option value="headache">Headache</option><option value="lightheaded">Lightheaded</option><option value="breathing_sensitivity">Breathing sensitivity</option><option value="fatigue">Fatigue</option></select></div>
-          <div><label>API endpoint</label><input id="apiEndpoint" value="https://fantastic-valkyrie-594c13.netlify.app/.netlify/functions/wellness-report" oninput="localStorage.setItem('airawareApiEndpoint', this.value)" placeholder="https://fantastic-valkyrie-594c13.netlify.app/.netlify/functions/wellness-report"></div>
+          <div><label>API endpoint</label><input id="apiEndpoint" value="/.netlify/functions/openai" oninput="localStorage.setItem('airawareApiEndpoint', this.value)" placeholder="/.netlify/functions/openai"></div>
         </div>
       </div>
 
@@ -1237,10 +1237,25 @@ function plainText(x){
   const d=document.createElement('div'); d.innerHTML=String(x||''); return d.textContent||d.innerText||'';
 }
 function getApiEndpoint(){
+  const defaultEndpoint='/.netlify/functions/openai';
+  const retiredEndpoint='/.netlify/functions/wellness-report';
+  const retiredFull='https://fantastic-valkyrie-594c13.netlify.app/.netlify/functions/wellness-report';
   const el=document.getElementById('apiEndpoint');
-  const saved=localStorage.getItem('airawareApiEndpoint');
-  if(el && saved && el.value !== saved) el.value=saved;
-  return (el?.value || saved || 'https://fantastic-valkyrie-594c13.netlify.app/.netlify/functions/wellness-report').trim();
+  let saved=localStorage.getItem('airawareApiEndpoint');
+
+  // Prevent an old saved browser value from forcing the retired wellness-report endpoint.
+  if(saved === retiredEndpoint || saved === retiredFull || (saved && saved.includes('/.netlify/functions/wellness-report'))){
+    localStorage.setItem('airawareApiEndpoint', defaultEndpoint);
+    saved=defaultEndpoint;
+  }
+
+  if(el && (!el.value || el.value.includes('/.netlify/functions/wellness-report'))){
+    el.value=saved || defaultEndpoint;
+  } else if(el && saved && el.value !== saved){
+    el.value=saved;
+  }
+
+  return (el?.value || saved || defaultEndpoint).trim();
 }
 function bpSummary(){
   const bp=bpLoadFactor();
@@ -1604,7 +1619,15 @@ async function smartGenerateReport(force=false){
 }
 window.addEventListener('online',()=>{ setTimeout(()=>smartGenerateReport(true),1500); });
 window.addEventListener('offline',()=>{ showOfflineMessage(); });
-setTimeout(()=>{ const saved=localStorage.getItem('airawareApiEndpoint'); const el=document.getElementById('apiEndpoint'); if(saved && el) el.value=saved; },500);
+setTimeout(()=>{
+  const el=document.getElementById('apiEndpoint');
+  let saved=localStorage.getItem('airawareApiEndpoint');
+  if(saved && saved.includes('/.netlify/functions/wellness-report')){
+    saved='/.netlify/functions/openai';
+    localStorage.setItem('airawareApiEndpoint', saved);
+  }
+  if(el) el.value=saved || '/.netlify/functions/openai';
+},500);
 
 
 function daBurdenLabel(da){ if(da===null || !isFinite(da)) return '—'; const a=Math.abs(da); if(a<150) return 'Low'; if(a<300) return 'Mild'; if(a<500) return 'Moderate'; return 'High'; }

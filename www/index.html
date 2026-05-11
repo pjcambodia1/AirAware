@@ -1237,25 +1237,10 @@ function plainText(x){
   const d=document.createElement('div'); d.innerHTML=String(x||''); return d.textContent||d.innerText||'';
 }
 function getApiEndpoint(){
-  const defaultEndpoint='/.netlify/functions/openai';
-  const retiredEndpoint='/.netlify/functions/wellness-report';
-  const retiredFull='https://fantastic-valkyrie-594c13.netlify.app/.netlify/functions/wellness-report';
   const el=document.getElementById('apiEndpoint');
-  let saved=localStorage.getItem('airawareApiEndpoint');
-
-  // Prevent an old saved browser value from forcing the retired wellness-report endpoint.
-  if(saved === retiredEndpoint || saved === retiredFull || (saved && saved.includes('/.netlify/functions/wellness-report'))){
-    localStorage.setItem('airawareApiEndpoint', defaultEndpoint);
-    saved=defaultEndpoint;
-  }
-
-  if(el && (!el.value || el.value.includes('/.netlify/functions/wellness-report'))){
-    el.value=saved || defaultEndpoint;
-  } else if(el && saved && el.value !== saved){
-    el.value=saved;
-  }
-
-  return (el?.value || saved || defaultEndpoint).trim();
+  const saved=localStorage.getItem('airawareApiEndpoint');
+  if(el && saved && el.value !== saved) el.value=saved;
+  return (el?.value || saved || '/.netlify/functions/openai').trim();
 }
 function bpSummary(){
   const bp=bpLoadFactor();
@@ -1619,15 +1604,7 @@ async function smartGenerateReport(force=false){
 }
 window.addEventListener('online',()=>{ setTimeout(()=>smartGenerateReport(true),1500); });
 window.addEventListener('offline',()=>{ showOfflineMessage(); });
-setTimeout(()=>{
-  const el=document.getElementById('apiEndpoint');
-  let saved=localStorage.getItem('airawareApiEndpoint');
-  if(saved && saved.includes('/.netlify/functions/wellness-report')){
-    saved='/.netlify/functions/openai';
-    localStorage.setItem('airawareApiEndpoint', saved);
-  }
-  if(el) el.value=saved || '/.netlify/functions/openai';
-},500);
+setTimeout(()=>{ const saved=localStorage.getItem('airawareApiEndpoint'); const el=document.getElementById('apiEndpoint'); if(saved && el) el.value=saved; },500);
 
 
 function daBurdenLabel(da){ if(da===null || !isFinite(da)) return '—'; const a=Math.abs(da); if(a<150) return 'Low'; if(a<300) return 'Mild'; if(a<500) return 'Moderate'; return 'High'; }

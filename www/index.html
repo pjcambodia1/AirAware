@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- AirAware v65: Wellness report API routed to /.netlify/functions/openai -->
+<!-- AirAware v82r1: Wellness report API routed to AirTrueIQ Vercel /api/openai -->
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>AirAware v49 Preview Feel Test</title>
+<title>AirAware v82r1</title>
 <style>
   body{margin:0;background:radial-gradient(circle at top,#ffffff 0,#eef6ff 38%,#e8edf5 100%);font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;color:#0f172a}
   .app{max-width:480px;margin:auto;padding:16px}
@@ -182,11 +182,52 @@
   .servicePrice{display:inline-block;background:#0f172a;color:#fff;border-radius:999px;padding:6px 10px;font-weight:700;margin-top:8px}
   .softLock{font-size:11px;color:#64748b;margin-top:7px;line-height:1.35}
 
+
+/* PLD_SURGICAL_CSS_V76 */
+.pldPatchCard{background:linear-gradient(135deg,#fff7ed,#f5f3ff);border:1px solid #fed7aa;border-radius:20px;padding:12px;margin-top:12px;box-shadow:0 8px 22px rgba(15,23,42,.06)}
+.pldPatchTop{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.pldPatchLabel{font-size:12px;color:#64748b;font-weight:900;text-transform:uppercase;letter-spacing:.04em}
+.pldPatchValue{font-size:20px;font-weight:950;color:#dc2626}
+.pldPatchSub{font-size:12px;color:#475569;line-height:1.35;margin-top:4px}
+.pldModalBack{position:fixed;inset:0;background:rgba(2,6,23,.72);display:none;align-items:center;justify-content:center;padding:10px;z-index:9999}
+.pldModal{width:min(760px,100%);max-height:94vh;overflow:auto;background:#06111f;color:#e5edf7;border:1px solid rgba(148,163,184,.25);border-radius:22px;padding:14px;box-shadow:0 24px 80px rgba(0,0,0,.55)}
+.pldHead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.pldTitle{font-size:22px;font-weight:950;color:#f8fafc}
+.pldSmall{font-size:12px;color:#93a4b8;line-height:1.35}
+.pldClose{background:rgba(255,255,255,.08)!important;color:#fff!important;border:1px solid rgba(255,255,255,.16)!important;width:auto!important;margin:0!important}
+.pldGaugeBox{background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:12px;margin-top:12px;text-align:center}
+.pldGauge{width:100%;max-width:340px;height:auto;margin:auto;display:block}
+.pldLevel{font-size:28px;font-weight:950;color:#fb7185;margin-top:-12px}
+.pldStats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.pldStat{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:15px;padding:10px}
+.pldStat .k{font-size:11px;text-transform:uppercase;font-weight:950;color:#93c5fd;letter-spacing:.04em}
+.pldStat .v{font-size:18px;font-weight:950;color:#fff;margin-top:4px}
+.pldGraphBox{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.10);border-radius:18px;padding:10px;margin-top:12px;overflow:hidden}
+.pldSvg{width:100%;height:auto;display:block;background:#071827;border-radius:14px}
+.pldVerify{margin-top:12px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:10px;overflow:auto}
+.pldTable{width:100%;border-collapse:collapse;font-size:11px;color:#dbeafe;min-width:600px}
+.pldTable th,.pldTable td{border-bottom:1px solid rgba(148,163,184,.18);padding:6px;text-align:right}
+.pldTable th:first-child,.pldTable td:first-child{text-align:left}
+.pldTable th{color:#93c5fd;text-transform:uppercase;font-size:10px;letter-spacing:.04em}
+.pldAlert{background:rgba(239,68,68,.13);border:1px solid rgba(248,113,113,.35);border-radius:16px;padding:11px;margin-top:12px;color:#fee2e2;font-size:12px;line-height:1.4}
+.pldFoot{font-size:10px;color:#93a4b8;margin-top:8px;line-height:1.35}
+
+
+/* PLD_GRAPH_DEFINITION_PATCH_V77 */
+.pldGraphBox{padding:12px}
+.pldGraphHeader{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start;margin-bottom:8px}
+.pldGraphTitle{font-size:20px;font-weight:950;color:#f8fafc;line-height:1.05}
+.pldGraphLegend{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;font-size:11px;color:#cbd5e1}
+.pldLegendDot{display:inline-block;width:10px;height:10px;border-radius:999px;margin-right:5px;vertical-align:-1px}
+.pldBlue{background:#38bdf8}.pldOrange{background:#fb923c}.pldGreen{background:#7ddc5a}.pldPurple{background:#c084fc}
+.pldSvg{height:auto;min-height:260px}
+.pldTable th,.pldTable td{font-size:11px}
+
 </style>
 </head>
 <body>
 <div class="app">
-  <h1>AirAware <span style="font-size:15px;color:#2563eb;vertical-align:middle">v46</span></h1>
+  <h1>AirAware <span style="font-size:15px;color:#2563eb;vertical-align:middle">v82r1</span></h1>
   <div class="muted" id="locationLine">No live data loaded</div>
   <button class="light" onclick="openGuideLegend()">Guide / Legend / Terms</button>
 
@@ -205,7 +246,19 @@
     <p id="effectMsg">Load live weather. If it fails, the panel will show the exact error.</p>
   </div>
 
-  <div class="card">
+  
+  <div class="pldPatchCard" id="pldPatchCard">
+    <div class="pldPatchTop">
+      <div>
+        <div class="pldPatchLabel">Body Sensitivity Impact</div>
+        <div class="pldPatchSub" id="pldPatchMiniText">Load live weather to verify the 6-hour PLD trend.</div>
+      </div>
+      <div class="pldPatchValue" id="pldPatchMiniLevel">—</div>
+    </div>
+    <button class="light" onclick="openPldTrend()">View Body Sensitivity & 6-Hour Trend</button>
+  </div>
+
+<div class="card">
     <b>Location / weather controls</b>
     <div class="small" style="margin-top:6px">GPS and typed location can both stay available. When they are close, the app treats them as a validated pair. If they are far apart, the active loaded source is used and the other is flagged as intentional travel/VPN/mismatch.</div>
     <div class="row">
@@ -546,7 +599,7 @@
           <div><label>Age range</label><select id="ageGroup"><option value="adult">Adult</option><option value="young_adult">Young adult</option><option value="senior">Senior</option><option value="minor">Teen/minor</option></select></div>
           <div><label>BP profile</label><select id="bpProfileSelect"><option value="auto">Auto from BP input</option><option value="low">Low BP tendency</option><option value="average">Average BP</option><option value="high">High BP tendency</option><option value="unknown">Unknown</option></select></div>
           <div><label>Current symptoms</label><select id="symptomSelect"><option value="none">None</option><option value="headache">Headache</option><option value="lightheaded">Lightheaded</option><option value="breathing_sensitivity">Breathing sensitivity</option><option value="fatigue">Fatigue</option></select></div>
-          <div><label>API endpoint</label><input id="apiEndpoint" value="/.netlify/functions/openai" oninput="localStorage.setItem('airawareApiEndpoint', this.value)" placeholder="/.netlify/functions/openai"></div>
+          <div><label>API endpoint</label><input id="apiEndpoint" value="https://airtrueiq.com/api/openai" oninput="localStorage.setItem('airawareApiEndpoint', this.value)" placeholder="https://airtrueiq.com/api/openai"></div>
         </div>
       </div>
 
@@ -648,7 +701,7 @@
 </div>
 
 <script>
-// AirAware v49 preview feel test + dynamic DA switch + timestamped report page.
+// AirAware v82r1 + dynamic DA switch + timestamped report page + AirTrueIQ OpenAI API endpoint.
 const R_D=287.05, R_V=461.5, RHO_0=1.225;
 let personalSensitivity = 0; let latestDeltaH = null; let latestDelta30 = null; let latestEffect = 'No Data';
 let gpsCoords = null;
@@ -1240,7 +1293,7 @@ function getApiEndpoint(){
   const el=document.getElementById('apiEndpoint');
   const saved=localStorage.getItem('airawareApiEndpoint');
   if(el && saved && el.value !== saved) el.value=saved;
-  return (el?.value || saved || '/.netlify/functions/openai').trim();
+  return (el?.value || saved || 'https://airtrueiq.com/api/openai').trim();
 }
 function bpSummary(){
   const bp=bpLoadFactor();
@@ -1604,7 +1657,22 @@ async function smartGenerateReport(force=false){
 }
 window.addEventListener('online',()=>{ setTimeout(()=>smartGenerateReport(true),1500); });
 window.addEventListener('offline',()=>{ showOfflineMessage(); });
-setTimeout(()=>{ const saved=localStorage.getItem('airawareApiEndpoint'); const el=document.getElementById('apiEndpoint'); if(saved && el) el.value=saved; },500);
+setTimeout(()=>{
+  const el=document.getElementById('apiEndpoint');
+  const saved=localStorage.getItem('airawareApiEndpoint');
+  const defaultEndpoint='https://airtrueiq.com/api/openai';
+  if(el){
+    if(saved && saved.includes('/.netlify/functions/openai')){
+      el.value=defaultEndpoint;
+      localStorage.setItem('airawareApiEndpoint', defaultEndpoint);
+    } else if(saved){
+      el.value=saved;
+    } else {
+      el.value=defaultEndpoint;
+      localStorage.setItem('airawareApiEndpoint', defaultEndpoint);
+    }
+  }
+},500);
 
 
 function daBurdenLabel(da){ if(da===null || !isFinite(da)) return '—'; const a=Math.abs(da); if(a<150) return 'Low'; if(a<300) return 'Mild'; if(a<500) return 'Moderate'; return 'High'; }
@@ -1792,6 +1860,65 @@ async function getElevation(lat,lon){
     return e && e.elevation && e.elevation.length ? e.elevation[0] : 0;
   }catch(e){ return 0; }
 }
+
+/* PLD_SURGICAL_HELPERS_V76 */
+function pldLocalMs(localStr){
+  const m=String(localStr||'').match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if(!m) return NaN;
+  return new Date(Number(m[1]), Number(m[2])-1, Number(m[3]), Number(m[4]), Number(m[5]), 0, 0).getTime();
+}
+function pldLabel(localStr){
+  const m=String(localStr||'').match(/T(\d{2}):(\d{2})/);
+  return m ? `${m[1]}:${m[2]}` : '—';
+}
+function buildPldTrend6h(w, nowMs){
+  if(!w || !w.hourly || !w.hourly.time) return [];
+  const times=w.hourly.time;
+  const ms=times.map(pldLocalMs);
+
+  let best=-Infinity;
+  for(let i=0;i<ms.length;i++){
+    if(isFinite(ms[i]) && ms[i] <= nowMs && ms[i] > best) best=ms[i];
+  }
+  if(!isFinite(best)) return [];
+
+  const points=[];
+  for(let h=6; h>=0; h--){
+    const target=best - h*3600*1000;
+    const target24=target - 24*3600*1000;
+
+    let idx=-1, diff=Infinity, idx24=-1, diff24=Infinity;
+    for(let i=0;i<ms.length;i++){
+      const d=Math.abs(ms[i]-target);
+      if(d<diff){diff=d; idx=i;}
+      const d24=Math.abs(ms[i]-target24);
+      if(d24<diff24){diff24=d24; idx24=i;}
+    }
+
+    if(idx<0 || idx24<0 || diff>31*60*1000 || diff24>31*60*1000) continue;
+
+    const n={tempC:w.hourly.temperature_2m[idx], dewC:w.hourly.dew_point_2m[idx], pressureHpa:w.hourly.surface_pressure[idx]};
+    const o={tempC:w.hourly.temperature_2m[idx24], dewC:w.hourly.dew_point_2m[idx24], pressureHpa:w.hourly.surface_pressure[idx24]};
+    if([n.tempC,n.dewC,n.pressureHpa,o.tempC,o.dewC,o.pressureHpa].some(v=>v===null||v===undefined||!isFinite(v))) continue;
+
+    const rhoN=density(n.tempC,n.pressureHpa,n.dewC);
+    const rhoO=density(o.tempC,o.pressureHpa,o.dewC);
+    const daN=densityAlt(rhoN);
+    const daO=densityAlt(rhoO);
+    const pld24=daN-daO;
+
+    points.push({
+      apiTime:times[idx],
+      label:pldLabel(times[idx]),
+      airDensity:rhoN,
+      densityAltitude:daN,
+      pld24,
+      score:score(pld24)
+    });
+  }
+  return points;
+}
+
 async function loadForCoords(lat,lon,label,confidenceBase){
   setText("mainStatus","Loading weather API...");
   setText("verifyStatus","Loading verification data...");
@@ -1826,9 +1953,27 @@ async function loadForCoords(lat,lon,label,confidenceBase){
 
     const airDyn=dynamicDaFromSeries(w, nowMs, hNow);
     latestDaVelocity=airDyn.velocity; latestDaAcceleration=airDyn.acceleration; latestTransitionFlip=airDyn.transition; latestDynamicAdjustment=airDyn.adjustment; latestDynamicTrigger=airDyn.trigger;
+    window.pldMetrics = {
+      updatedAt: new Date().toISOString(),
+      location: label,
+      density: rhoNow,
+      densityAltitude: hNow,
+      daBurden: daBurden,
+      shift24: dH,
+      shift30: d30,
+      score: sc,
+      daVelocity: latestDaVelocity,
+      daAcceleration: latestDaAcceleration,
+      transitionFlip: latestTransitionFlip,
+      source: confidenceBase
+    };
+    window.pldTrend6h = buildPldTrend6h(w, nowMs);
+
     // v58: Score is still environmental, but tuned with corroboration rather than direct v53 inflation.
     // v53 dynamics are mainly for BP/body/report, and only act as confirmation for top-end score behavior.
     sc = score(dH, d30, rhoNow-rhoOld, nowObj.pressureHpa-oldObj.pressureHpa, airDyn);
+    if(window.pldMetrics) window.pldMetrics.score = sc;
+
 
     const effect=Math.abs(dH)<30?"Stable":dH>=30?"Mountain Effect":"Valley Effect";
     const hero=document.getElementById("hero"); hero.className="hero "+(effect==="Mountain Effect"?"mountain":effect==="Valley Effect"?"valley":"");
@@ -2109,6 +2254,328 @@ window.addEventListener("load", function(){
     <button class="light" onclick="closeDisclaimer()">Close</button>
   </div>
 </div>
+
+
+<div class="pldModalBack" id="pldTrendModal" onclick="if(event.target.id==='pldTrendModal')closePldTrend()">
+  <div class="pldModal">
+    <div class="pldHead">
+      <div>
+        <div class="pldTitle">PLD Body Impact Trend</div>
+        <div class="pldSmall" id="pldWindowLabel">6-hour local-time PLD / air density window</div>
+      </div>
+      <button class="light pldClose" onclick="closePldTrend()">Close</button>
+    </div>
+
+    <div class="pldGaugeBox">
+      <div class="pldPatchLabel" style="color:#93c5fd;text-align:left">Body Sensitivity Impact</div>
+      <svg class="pldGauge" id="pldGauge" viewBox="0 0 360 205" role="img" aria-label="PLD body impact gauge"></svg>
+      <div class="pldLevel" id="pldLevel">—</div>
+      <div class="pldSmall" id="pldGaugeNote">Awaiting verified PLD data.</div>
+      <div class="pldFoot"><b>m DA</b> = meters of density-altitude change. PLD compares density-altitude movement, not physical travel distance.</div>
+    </div>
+
+    <div class="pldStats">
+      <div class="pldStat"><div class="k">30-min PLD Shift</div><div class="v" id="pld30">—</div></div>
+      <div class="pldStat"><div class="k">24-hr PLD Diff</div><div class="v" id="pld24">—</div></div>
+      <div class="pldStat"><div class="k">Peak PLD Shift</div><div class="v" id="pldPeak">—</div></div>
+      <div class="pldStat"><div class="k">Body Window</div><div class="v" id="pldWindow">—</div></div>
+    </div>
+    <div class="pldAlert" id="pldDriverLine" style="background:rgba(59,130,246,.11);border-color:rgba(147,197,253,.30);color:#dbeafe">Gauge driver: —</div>
+
+    <div class="pldGraphBox">
+      <div class="pldGraphHeader">
+        <div class="pldGraphTitle">6-Hour Trend<br>Graph</div>
+        <div class="pldGraphLegend">
+          <span><i class="pldLegendDot pldBlue"></i>Air Density</span>
+          <span><i class="pldLegendDot pldOrange"></i>PLD Diff</span>
+          <span><i class="pldLegendDot pldGreen"></i>Score</span>
+          <span><i class="pldLegendDot pldPurple"></i>Peak</span>
+        </div>
+      </div>
+      <svg class="pldSvg" id="pldSvg" viewBox="0 0 720 360" role="img" aria-label="6-hour PLD trend graph"></svg>
+    </div>
+
+    <div class="pldVerify">
+      <div style="font-weight:950;margin-bottom:6px">Verification Table — raw points used by graph</div>
+      <table class="pldTable" id="pldTable">
+        <thead><tr><th>Time</th><th>Air Density</th><th>Density Alt.</th><th>PLD 24h</th><th>Score</th></tr></thead>
+        <tbody><tr><td colspan="5" style="text-align:center">Awaiting live data</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="pldAlert" id="pldAlert">Load verified weather data first. No PLD values are being guessed.</div>
+  </div>
+</div>
+
+
+<script>
+/* PLD_SURGICAL_JS_V76 */
+function pldM(){ return window.pldMetrics || null; }
+function pldT(){ return Array.isArray(window.pldTrend6h) ? window.pldTrend6h : []; }
+function pldFmt(v,d=0){ return (v===null||v===undefined||!isFinite(Number(v))) ? '—' : Number(v).toFixed(d); }
+function pldMda(v){ return (v===null||v===undefined||!isFinite(Number(v))) ? '—' : (Number(v)>=0?'+':'') + Math.round(Number(v)) + ' m DA'; }
+function pldScale(value, stops){
+  const v=Math.abs(Number(value)||0);
+  if(v<=stops[0][0]) return stops[0][1];
+  for(let i=1;i<stops.length;i++){
+    const v0=stops[i-1][0], p0=stops[i-1][1];
+    const v1=stops[i][0], p1=stops[i][1];
+    if(v<=v1){
+      const t=(v-v0)/(v1-v0 || 1);
+      return p0 + t*(p1-p0);
+    }
+  }
+  return stops[stops.length-1][1];
+}
+function pldImpact(){
+  const m=pldM();
+  if(!m) return {level:'—',pos:0,note:'Awaiting verified PLD data.',active:false,driver:'No live PLD data'};
+
+  const d30=Math.abs(Number(m.shift30)||0);
+  const d24=Math.abs(Number(m.shift24)||0);
+  const vel=Math.abs(Number(m.daVelocity)||0);
+
+  const pos30 = pldScale(d30, [[0,7],[15,15],[30,28],[60,48],[120,72],[200,92],[300,98]]);
+  const pos24 = pldScale(d24, [[0,7],[30,18],[80,34],[150,55],[300,76],[600,94],[900,99]]);
+  const posVel = pldScale(vel, [[0,7],[15,14],[30,28],[60,48],[120,72],[200,92]]);
+
+  let pos = Math.max(pos30, pos24, posVel);
+
+  if(m.transitionFlip && (d30 >= 30 || d24 >= 80 || vel >= 30)){
+    pos = Math.min(99, pos + 8);
+  }
+
+  let driver = `30-min ${pldMda(m.shift30)}`;
+  const maxPos = Math.max(pos30,pos24,posVel);
+  if(maxPos === pos24) driver = `24-hr ${pldMda(m.shift24)}`;
+  if(maxPos === posVel) driver = `DA velocity ${Math.round(vel)} m DA/hr`;
+
+  if(pos >= 85) return {level:'SPIKE',pos,note:`Spike load driven by ${driver}.`,active:true,driver};
+  if(pos >= 65) return {level:'HIGH',pos,note:`High body-impact load driven by ${driver}.`,active:true,driver};
+  if(pos >= 45) return {level:'ELEVATED',pos,note:`Elevated atmospheric shift load driven by ${driver}.`,active:true,driver};
+  if(pos >= 24) return {level:'NOTICE',pos,note:`Noticeable movement driven by ${driver}.`,active:false,driver};
+  return {level:'STABLE',pos,note:`PLD movement is below tangible threshold. Driver: ${driver}.`,active:false,driver};
+}
+/* v82r1: animated real-time direct-coordinate gauge needle + AirTrueIQ OpenAI endpoint.
+   Uses real PLD load position only. Smoothly moves from prior position to latest value. */
+let pldNeedleCurrentPos = null;
+let pldNeedleAnimFrame = null;
+
+function pldNeedlePoint(pos){
+  const cx = 180, cy = 165, r = 126;
+  const safe = Math.max(0, Math.min(100, Number(pos)||0));
+  const angle = Math.PI - (safe / 100) * Math.PI;
+  return {
+    x: cx + Math.cos(angle) * r,
+    y: cy - Math.sin(angle) * r
+  };
+}
+
+function pldGaugeBaseSvg(){
+  return `<defs>
+    <linearGradient id="pldArc" x1="35" y1="165" x2="325" y2="165" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="28%" stop-color="#eab308"/>
+      <stop offset="52%" stop-color="#f97316"/>
+      <stop offset="76%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+  </defs>
+    <path d="M 45 165 A 135 135 0 0 1 315 165" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="26" stroke-linecap="round"/>
+    <path d="M 45 165 A 135 135 0 0 1 315 165" fill="none" stroke="url(#pldArc)" stroke-width="22" stroke-linecap="round"/>
+    <line id="pldNeedleLine" x1="180" y1="165" x2="54" y2="165" stroke="#ffffff" stroke-width="6" stroke-linecap="round"/>
+    <circle id="pldNeedleHubOuter" cx="180" cy="165" r="12" fill="#ffffff"/>
+    <circle cx="180" cy="165" r="5" fill="#0b1523"/>
+    <text x="45" y="194" fill="#cbd5e1" font-size="12" font-weight="800" text-anchor="middle">Stable</text>
+    <text x="105" y="72" fill="#cbd5e1" font-size="12" font-weight="800" text-anchor="middle">Notice</text>
+    <text x="180" y="36" fill="#cbd5e1" font-size="12" font-weight="800" text-anchor="middle">Elevated</text>
+    <text x="255" y="72" fill="#cbd5e1" font-size="12" font-weight="800" text-anchor="middle">High</text>
+    <text x="315" y="194" fill="#cbd5e1" font-size="12" font-weight="800" text-anchor="middle">Spike</text>`;
+}
+
+function setPldNeedleVisual(pos, hasData){
+  const line = document.getElementById('pldNeedleLine');
+  const hub = document.getElementById('pldNeedleHubOuter');
+  if(!line) return;
+  const p = pldNeedlePoint(pos);
+  line.setAttribute('x2', p.x.toFixed(1));
+  line.setAttribute('y2', p.y.toFixed(1));
+  line.setAttribute('opacity', hasData ? '1' : '.35');
+  if(hub) hub.setAttribute('opacity', hasData ? '1' : '.55');
+}
+
+function animatePldNeedleTo(targetPos, hasData){
+  const start = (pldNeedleCurrentPos === null || !isFinite(pldNeedleCurrentPos)) ? targetPos : pldNeedleCurrentPos;
+  const end = Math.max(0, Math.min(100, Number(targetPos)||0));
+  const duration = 650;
+  const startTime = performance.now();
+
+  if(pldNeedleAnimFrame) cancelAnimationFrame(pldNeedleAnimFrame);
+
+  function tick(now){
+    const t = Math.min(1, (now - startTime) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    const val = start + (end - start) * eased;
+    pldNeedleCurrentPos = val;
+    setPldNeedleVisual(val, hasData);
+    if(t < 1){
+      pldNeedleAnimFrame = requestAnimationFrame(tick);
+    }else{
+      pldNeedleCurrentPos = end;
+      setPldNeedleVisual(end, hasData);
+      pldNeedleAnimFrame = null;
+    }
+  }
+  pldNeedleAnimFrame = requestAnimationFrame(tick);
+}
+
+function drawPldGauge(pos,hasData){
+  const svg=document.getElementById('pldGauge'); 
+  if(!svg) return;
+
+  const target = hasData ? Math.max(0, Math.min(100, Number(pos)||0)) : 0;
+
+  if(!document.getElementById('pldNeedleLine')){
+    svg.innerHTML = pldGaugeBaseSvg();
+    pldNeedleCurrentPos = null;
+    setPldNeedleVisual(target, hasData);
+  }
+
+  animatePldNeedleTo(target, hasData);
+}
+function drawPldGraph(){
+  const svg=document.getElementById('pldSvg'); if(!svg) return;
+  const pts=pldT();
+  if(!pts.length){
+    svg.innerHTML='<rect width="720" height="360" rx="18" fill="#071827"/><text x="360" y="180" fill="#cbd5e1" font-size="16" text-anchor="middle">Awaiting live hourly trend data.</text>';
+    return;
+  }
+
+  const W=720,H=360,L=66,R=66,T=38,B=54,w=W-L-R,h=H-T-B;
+  const xs=i=>L+(pts.length===1?0:(i/(pts.length-1))*w);
+
+  const dens=pts.map(p=>Number(p.airDensity)).filter(Number.isFinite);
+  const plds=pts.map(p=>Number(p.pld24)).filter(Number.isFinite);
+  const scores=pts.map(p=>Number(p.score)).filter(Number.isFinite);
+
+  const denMinRaw=Math.min(...dens), denMaxRaw=Math.max(...dens);
+  const denPad=Math.max(.004,(denMaxRaw-denMinRaw)*.18);
+  const denMin=denMinRaw-denPad, denMax=denMaxRaw+denPad;
+
+  const pldMinRaw=Math.min(...plds), pldMaxRaw=Math.max(...plds);
+  const pldPad=Math.max(25,(pldMaxRaw-pldMinRaw)*.18);
+  const pldMin=pldMinRaw-pldPad, pldMax=pldMaxRaw+pldPad;
+
+  const yDen=v=>T+(denMax-v)/(denMax-denMin||1)*h;
+  const yPld=v=>T+(pldMax-v)/(pldMax-pldMin||1)*h;
+  const yScore=v=>T+(10-v)/10*h;
+
+  const line=(getter,color,width=4)=>`<polyline fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round" points="${pts.map((p,i)=>xs(i)+','+getter(p)).join(' ')}"/>`;
+  const dot=(x,y,color)=>`<circle cx="${x}" cy="${y}" r="4.5" fill="${color}" stroke="#071827" stroke-width="1.5"/>`;
+
+  let grid='';
+  for(let i=0;i<=6;i++){
+    const y=T+i*h/6;
+    grid+=`<line x1="${L}" y1="${y}" x2="${W-R}" y2="${y}" stroke="rgba(148,163,184,.18)"/>`;
+  }
+  for(let i=0;i<pts.length;i++){
+    const x=xs(i);
+    grid+=`<line x1="${x}" y1="${T}" x2="${x}" y2="${H-B}" stroke="rgba(148,163,184,.12)"/>`;
+    grid+=`<text x="${x}" y="${H-20}" fill="#cbd5e1" font-size="13" text-anchor="middle">${pts[i].label}</text>`;
+  }
+
+  // Left axis: air density exact scale
+  let leftAxis='';
+  for(let i=0;i<=5;i++){
+    const val=denMax-(i/5)*(denMax-denMin);
+    const y=T+i*h/5;
+    leftAxis+=`<text x="${L-10}" y="${y+4}" fill="#38bdf8" font-size="12" text-anchor="end">${val.toFixed(3)}</text>`;
+  }
+
+  // Right axis: PLD Diff scale and Score scale
+  let rightAxis='';
+  for(let i=0;i<=5;i++){
+    const pval=pldMax-(i/5)*(pldMax-pldMin);
+    const y=T+i*h/5;
+    rightAxis+=`<text x="${W-R+12}" y="${y+4}" fill="#fb923c" font-size="12" text-anchor="start">${Math.round(pval)}</text>`;
+  }
+  for(let i=0;i<=5;i++){
+    const sval=10-(i/5)*10;
+    const y=T+i*h/5;
+    rightAxis+=`<text x="${W-4}" y="${y+4}" fill="#7ddc5a" font-size="12" text-anchor="end">${Math.round(sval)}</text>`;
+  }
+
+  let labels='';
+  pts.forEach((p,i)=>{
+    const x=xs(i);
+    const yd=yDen(p.airDensity), yp=yPld(p.pld24), ys=yScore(p.score);
+    labels+=dot(x,yd,'#38bdf8')+`<text x="${x}" y="${yd-11}" fill="#38bdf8" font-size="12" font-weight="800" text-anchor="middle">${Number(p.airDensity).toFixed(3)}</text>`;
+    labels+=dot(x,yp,'#fb923c')+`<text x="${x}" y="${yp+18}" fill="#fb923c" font-size="12" font-weight="800" text-anchor="middle">${Math.round(p.pld24)}</text>`;
+    labels+=dot(x,ys,'#7ddc5a')+`<text x="${x}" y="${ys-10}" fill="#7ddc5a" font-size="12" font-weight="800" text-anchor="middle">${Number(p.score).toFixed(2)}</text>`;
+  });
+
+  let peak=0; pts.forEach((p,i)=>{ if(Math.abs(p.pld24)>Math.abs(pts[peak].pld24)) peak=i; });
+  const sx=xs(peak);
+  const peakTag=`<line x1="${sx}" y1="${T}" x2="${sx}" y2="${H-B}" stroke="#c084fc" stroke-width="2.5" stroke-dasharray="7 7"/>
+    <rect x="${Math.max(L,Math.min(W-R-92,sx-46))}" y="${T+8}" width="92" height="38" rx="10" fill="rgba(126,34,206,.72)" stroke="rgba(216,180,254,.45)"/>
+    <text x="${Math.max(L+46,Math.min(W-R-46,sx))}" y="${T+24}" fill="#f3e8ff" font-size="11" font-weight="900" text-anchor="middle">Peak PLD</text>
+    <text x="${Math.max(L+46,Math.min(W-R-46,sx))}" y="${T+39}" fill="#f3e8ff" font-size="12" text-anchor="middle">${pts[peak].label}</text>`;
+
+  svg.innerHTML=`<rect width="${W}" height="${H}" rx="18" fill="#071827"/>
+    <text x="${L}" y="22" fill="#38bdf8" font-size="13" font-weight="900">Air Density (kg/m³)</text>
+    <text x="${W-R-110}" y="22" fill="#fb923c" font-size="13" font-weight="900">PLD Diff (m)</text>
+    <text x="${W-5}" y="22" fill="#7ddc5a" font-size="13" font-weight="900" text-anchor="end">Score (0–10)</text>
+    ${grid}
+    <line x1="${L}" y1="${T}" x2="${L}" y2="${H-B}" stroke="rgba(148,163,184,.32)"/>
+    <line x1="${W-R}" y1="${T}" x2="${W-R}" y2="${H-B}" stroke="rgba(148,163,184,.32)"/>
+    <line x1="${L}" y1="${H-B}" x2="${W-R}" y2="${H-B}" stroke="rgba(148,163,184,.32)"/>
+    ${leftAxis}${rightAxis}
+    ${line(p=>yDen(p.airDensity),'#38bdf8',4)}
+    ${line(p=>yPld(p.pld24),'#fb923c',4)}
+    ${line(p=>yScore(p.score),'#7ddc5a',4)}
+    ${peakTag}
+    ${labels}
+    <text x="${(L+W-R)/2}" y="${H-4}" fill="#cbd5e1" font-size="13" text-anchor="middle">Time — current local 6-hour window</text>`;
+
+  const pk=document.getElementById('pldPeak'); if(pk) pk.textContent=pts[peak].label;
+}
+function drawPldTable(){
+  const tb=document.querySelector('#pldTable tbody'); if(!tb) return;
+  const pts=pldT();
+  if(!pts.length){ tb.innerHTML='<tr><td colspan="5" style="text-align:center">Awaiting live data</td></tr>'; return; }
+  tb.innerHTML=pts.map(p=>`<tr><td>${p.label}</td><td>${pldFmt(p.airDensity,3)}</td><td>${Math.round(p.densityAltitude)} m DA</td><td>${pldMda(p.pld24)}</td><td>${pldFmt(p.score,2)}</td></tr>`).join('');
+}
+function renderPldTrend(){
+  const m=pldM(), imp=pldImpact(), pts=pldT();
+  drawPldGauge(imp.pos, !!m);
+
+  const level=document.getElementById('pldLevel'); if(level) level.textContent=imp.level;
+  const note=document.getElementById('pldGaugeNote'); if(note) note.textContent=imp.note;
+
+  const miniLevel=document.getElementById('pldPatchMiniLevel'); if(miniLevel) miniLevel.textContent=imp.level;
+  const mini=document.getElementById('pldPatchMiniText'); if(mini) mini.textContent=m?`${imp.note} 30-min: ${pldMda(m.shift30)} • 24-hr: ${pldMda(m.shift24)}`:'Load live weather to verify the 6-hour PLD trend.';
+
+  const i30=document.getElementById('pld30'); if(i30) i30.textContent=m?pldMda(m.shift30):'—';
+  const i24=document.getElementById('pld24'); if(i24) i24.textContent=m?pldMda(m.shift24):'—';
+  const win=document.getElementById('pldWindow'); if(win) win.textContent=imp.active?'Active':'Watch';
+
+  const label=document.getElementById('pldWindowLabel');
+  if(label) label.textContent=pts.length?`6-hour local-time window: ${pts[0].label} → ${pts[pts.length-1].label}`:'6-hour local-time PLD / air density window';
+
+  const driverLine=document.getElementById('pldDriverLine');
+  if(driverLine) driverLine.textContent = m ? `Gauge driver: ${imp.driver}` : 'Gauge driver: awaiting live PLD data';
+
+  const alert=document.getElementById('pldAlert');
+  if(alert) alert.textContent=m?(imp.active?'Recent PLD movement may still affect body response even when current score appears lower.':'Live PLD movement is being tracked. No synthetic spike is being shown.'):'Load verified weather data first. No PLD values are being guessed.';
+
+  drawPldGraph();
+  drawPldTable();
+}
+function openPldTrend(){ const m=document.getElementById('pldTrendModal'); if(m) m.style.display='flex'; renderPldTrend(); }
+function closePldTrend(){ const m=document.getElementById('pldTrendModal'); if(m) m.style.display='none'; }
+setInterval(renderPldTrend, 2500);
+window.addEventListener('load',()=>setTimeout(renderPldTrend,1200));
+</script>
 
 </body>
 </html>

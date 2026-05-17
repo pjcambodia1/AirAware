@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- AirAware v82r3: Wellness report API routed to AirTrueIQ Vercel /api/openai -->
+<!-- AirAware v82r5: Wellness report API routed to AirTrueIQ Vercel /api/openai -->
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>AirAware v82r3</title>
+<title>AirAware v82r5</title>
 <style>
   body{margin:0;background:radial-gradient(circle at top,#ffffff 0,#eef6ff 38%,#e8edf5 100%);font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;color:#0f172a}
   .app{max-width:480px;margin:auto;padding:16px}
@@ -224,22 +224,30 @@
 .pldTable th,.pldTable td{font-size:11px}
 
 
-/* APK_SAFE_TOP_OFFSET_V82R3 */
-:root{--apkSafeTop:50px;}
+
+
+
+/* APK_SAFE_TOP_OFFSET_V82R4 */
+:root{--apkSafeTop:24px;}
 body{padding-top:calc(var(--apkSafeTop) + env(safe-area-inset-top, 0px));box-sizing:border-box;}
-@media (display-mode: browser){
-  body{padding-top:calc(32px + env(safe-area-inset-top, 0px));}
-}
 
 
-/* APK_APP_TOP_GUARD_V82R3 */
-.app{padding-top:16px;}
+/* V82R5_EXPAND_AND_PULL_REFRESH */
+.pldModalBack.expanded{align-items:stretch;justify-content:stretch;padding:0;background:#06111f;}
+.pldModalBack.expanded .pldModal{width:100%;height:100vh;max-height:100vh;border-radius:0;padding:16px;box-sizing:border-box;}
+.pldModalBack.expanded .pldGauge{max-width:520px;}
+.pldModalBack.expanded .pldSvg{min-height:380px;}
+.pldHeadActions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;}
+.pldExpandBtn{background:rgba(255,255,255,.08)!important;color:#fff!important;border:1px solid rgba(255,255,255,.16)!important;width:auto!important;margin:0!important;}
+.pullRefreshHint{position:fixed;top:8px;left:50%;transform:translateX(-50%) translateY(-80px);z-index:10000;background:#0f172a;color:#fff;border-radius:999px;padding:9px 14px;font-size:12px;font-weight:900;box-shadow:0 10px 28px rgba(15,23,42,.28);transition:transform .22s, opacity .22s;opacity:0;pointer-events:none;}
+.pullRefreshHint.show{transform:translateX(-50%) translateY(0);opacity:1;}
 
 </style>
 </head>
 <body>
+<div id="pullRefreshHint" class="pullRefreshHint">Pull to refresh live air data</div>
 <div class="app">
-  <h1>AirAware <span style="font-size:15px;color:#2563eb;vertical-align:middle">v82r3</span></h1>
+  <h1>AirAware <span style="font-size:15px;color:#2563eb;vertical-align:middle">v82r5</span></h1>
   <div class="muted" id="locationLine">No live data loaded</div>
   <button class="light" onclick="openGuideLegend()">Guide / Legend / Terms</button>
 
@@ -743,7 +751,7 @@ async function getBestPositionForApk(){
 }
 
 
-// AirAware v82r3 + dynamic DA switch + timestamped report page + AirTrueIQ OpenAI API endpoint.
+// AirAware v82r5 + dynamic DA switch + timestamped report page + AirTrueIQ OpenAI API endpoint.
 const R_D=287.05, R_V=461.5, RHO_0=1.225;
 let personalSensitivity = 0; let latestDeltaH = null; let latestDelta30 = null; let latestEffect = 'No Data';
 let gpsCoords = null;
@@ -2314,7 +2322,10 @@ window.addEventListener("load", function(){
         <div class="pldTitle">PLD Body Impact Trend</div>
         <div class="pldSmall" id="pldWindowLabel">6-hour local-time PLD / air density window</div>
       </div>
-      <button class="light pldClose" onclick="closePldTrend()">Close</button>
+      <div class="pldHeadActions">
+        <button class="light pldExpandBtn" id="pldExpandBtn" onclick="togglePldExpand(event)">Expand View</button>
+        <button class="light pldClose" onclick="closePldTrend()">Close</button>
+      </div>
     </div>
 
     <div class="pldGaugeBox">
@@ -2407,7 +2418,7 @@ function pldImpact(){
   if(pos >= 24) return {level:'NOTICE',pos,note:`Noticeable movement driven by ${driver}.`,active:false,driver};
   return {level:'STABLE',pos,note:`PLD movement is below tangible threshold. Driver: ${driver}.`,active:false,driver};
 }
-/* v82r3: animated real-time direct-coordinate gauge needle + AirTrueIQ OpenAI endpoint.
+/* v82r5: animated real-time direct-coordinate gauge needle + AirTrueIQ OpenAI endpoint.
    Uses real PLD load position only. Smoothly moves from prior position to latest value. */
 let pldNeedleCurrentPos = null;
 let pldNeedleAnimFrame = null;
@@ -2626,6 +2637,87 @@ function openPldTrend(){ const m=document.getElementById('pldTrendModal'); if(m)
 function closePldTrend(){ const m=document.getElementById('pldTrendModal'); if(m) m.style.display='none'; }
 setInterval(renderPldTrend, 2500);
 window.addEventListener('load',()=>setTimeout(renderPldTrend,1200));
+
+
+/* V82R5_EXPAND_AND_PULL_REFRESH_JS */
+function togglePldExpand(ev){
+  if(ev) ev.stopPropagation();
+  const modal=document.getElementById('pldTrendModal');
+  const btn=document.getElementById('pldExpandBtn');
+  if(!modal) return;
+  modal.classList.toggle('expanded');
+  if(btn) btn.textContent = modal.classList.contains('expanded') ? 'Normal View' : 'Expand View';
+  try{
+    if(typeof drawPldGauge === 'function') setTimeout(drawPldGauge,120);
+    if(typeof drawPldTrendGraph === 'function') setTimeout(drawPldTrendGraph,140);
+    if(typeof renderPldGauge === 'function') setTimeout(renderPldGauge,120);
+    if(typeof renderPldTrend === 'function') setTimeout(renderPldTrend,140);
+  }catch(e){}
+}
+
+async function airawarePullRefreshNow(){
+  const hint=document.getElementById('pullRefreshHint');
+  if(hint){
+    hint.textContent='Refreshing live air data...';
+    hint.classList.add('show');
+  }
+  try{
+    if(typeof useGps === 'function'){
+      await useGps();
+    } else if(typeof loadCurrentLocation === 'function'){
+      await loadCurrentLocation();
+    } else if(typeof refreshWeather === 'function'){
+      await refreshWeather();
+    } else if(typeof loadWeather === 'function'){
+      await loadWeather();
+    } else {
+      location.reload();
+      return;
+    }
+  }catch(e){
+    if(typeof setStatus === 'function') setStatus('Refresh failed: '+(e.message||e),'bad');
+  }finally{
+    setTimeout(()=>{
+      if(hint){
+        hint.textContent='Pull to refresh live air data';
+        hint.classList.remove('show');
+      }
+    },1200);
+  }
+}
+
+(function setupAirAwarePullToRefresh(){
+  let startY=0, pulling=false, active=false;
+  const threshold=95;
+  window.addEventListener('touchstart', function(e){
+    if(window.scrollY<=2 && e.touches && e.touches.length===1){
+      startY=e.touches[0].clientY;
+      pulling=true;
+      active=false;
+    }
+  }, {passive:true});
+
+  window.addEventListener('touchmove', function(e){
+    if(!pulling || !e.touches || e.touches.length!==1) return;
+    const dy=e.touches[0].clientY-startY;
+    const hint=document.getElementById('pullRefreshHint');
+    if(window.scrollY<=2 && dy>35 && hint){
+      hint.classList.add('show');
+      hint.textContent = dy>threshold ? 'Release to refresh' : 'Pull to refresh live air data';
+      active = dy>threshold;
+    }
+  }, {passive:true});
+
+  window.addEventListener('touchend', function(){
+    if(pulling && active) airawarePullRefreshNow();
+    else {
+      const hint=document.getElementById('pullRefreshHint');
+      if(hint) hint.classList.remove('show');
+    }
+    pulling=false; active=false;
+  }, {passive:true});
+})();
+
 </script>
 
 </body>

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- AirAware v82r1: Wellness report API routed to AirTrueIQ Vercel /api/openai -->
+<!-- AirAware v82r3: Wellness report API routed to AirTrueIQ Vercel /api/openai -->
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>AirAware v82r1</title>
+<title>AirAware v82r3</title>
 <style>
   body{margin:0;background:radial-gradient(circle at top,#ffffff 0,#eef6ff 38%,#e8edf5 100%);font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;color:#0f172a}
   .app{max-width:480px;margin:auto;padding:16px}
@@ -223,11 +223,23 @@
 .pldSvg{height:auto;min-height:260px}
 .pldTable th,.pldTable td{font-size:11px}
 
+
+/* APK_SAFE_TOP_OFFSET_V82R3 */
+:root{--apkSafeTop:50px;}
+body{padding-top:calc(var(--apkSafeTop) + env(safe-area-inset-top, 0px));box-sizing:border-box;}
+@media (display-mode: browser){
+  body{padding-top:calc(32px + env(safe-area-inset-top, 0px));}
+}
+
+
+/* APK_APP_TOP_GUARD_V82R3 */
+.app{padding-top:16px;}
+
 </style>
 </head>
 <body>
 <div class="app">
-  <h1>AirAware <span style="font-size:15px;color:#2563eb;vertical-align:middle">v82r1</span></h1>
+  <h1>AirAware <span style="font-size:15px;color:#2563eb;vertical-align:middle">v82r3</span></h1>
   <div class="muted" id="locationLine">No live data loaded</div>
   <button class="light" onclick="openGuideLegend()">Guide / Legend / Terms</button>
 
@@ -701,7 +713,37 @@
 </div>
 
 <script>
-// AirAware v82r1 + dynamic DA switch + timestamped report page + AirTrueIQ OpenAI API endpoint.
+
+async function getBestPositionForApk(){
+  try{
+    if(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation){
+      const Geo = window.Capacitor.Plugins.Geolocation;
+      try{ await Geo.requestPermissions(); }catch(e){}
+      const pos = await Geo.getCurrentPosition({ enableHighAccuracy:true, timeout:15000, maximumAge:0 });
+      return {
+        coords: {
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          accuracy: pos.coords.accuracy || null
+        }
+      };
+    }
+  }catch(e){
+    console.warn("Capacitor Geolocation fallback:", e);
+  }
+
+  return await new Promise((resolve, reject)=>{
+    if(!navigator.geolocation) return reject(new Error("GPS unavailable in this WebView/browser."));
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy:true,
+      timeout:15000,
+      maximumAge:0
+    });
+  });
+}
+
+
+// AirAware v82r3 + dynamic DA switch + timestamped report page + AirTrueIQ OpenAI API endpoint.
 const R_D=287.05, R_V=461.5, RHO_0=1.225;
 let personalSensitivity = 0; let latestDeltaH = null; let latestDelta30 = null; let latestEffect = 'No Data';
 let gpsCoords = null;
@@ -812,6 +854,15 @@ async function startCameraPulse(){
   const live=document.getElementById("pulseLiveText");
   if(live) live.innerHTML = "Requesting camera. Place fingertip flat over rear camera; keep still for 20 seconds.";
   try{
+
+    try{
+      if(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Camera){
+        await window.Capacitor.Plugins.Camera.requestPermissions();
+      }
+    }catch(e){
+      console.warn("Camera permission pre-request skipped:", e);
+    }
+
     if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("Camera API unavailable in this browser.");
     pulseStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}, width:{ideal:320}, height:{ideal:240}}, audio:false});
     const video=document.getElementById("pulseVideo");
@@ -2356,7 +2407,7 @@ function pldImpact(){
   if(pos >= 24) return {level:'NOTICE',pos,note:`Noticeable movement driven by ${driver}.`,active:false,driver};
   return {level:'STABLE',pos,note:`PLD movement is below tangible threshold. Driver: ${driver}.`,active:false,driver};
 }
-/* v82r1: animated real-time direct-coordinate gauge needle + AirTrueIQ OpenAI endpoint.
+/* v82r3: animated real-time direct-coordinate gauge needle + AirTrueIQ OpenAI endpoint.
    Uses real PLD load position only. Smoothly moves from prior position to latest value. */
 let pldNeedleCurrentPos = null;
 let pldNeedleAnimFrame = null;

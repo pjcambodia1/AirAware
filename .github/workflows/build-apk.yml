@@ -26,15 +26,18 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Install npm dependencies
+      -      - name: Install npm dependencies
         run: npm install
 
-      - name: Add Android platform if missing
+      - name: Add Android platform if missing or incomplete
         run: |
-          if [ ! -d "android" ]; then
+          if [ ! -f "android/gradlew" ]; then
+            echo "Android project missing gradlew. Recreating android platform..."
+            rm -rf android
             npx cap add android
+          else
+            echo "Android platform already exists."
           fi
-
       - name: Sync Capacitor
         run: npx cap sync android
 

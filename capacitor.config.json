@@ -5,12 +5,8 @@
   "server": {
     "androidScheme": "https",
     "cleartext": false
-  },
-  "plugins": {
-    "Geolocation": {
-      "permissions": [
-        "location"
-      ]
-    }
+    "plugins": {
+  "Geolocation": {
+    "permissions": ["location"]
   }
 }

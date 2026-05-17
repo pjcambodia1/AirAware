@@ -1,6 +1,6 @@
 {
-  "name": "airaware-v82r3",
-  "version": "1.0.1",
+  "name": "airaware-v82r4",
+  "version": "1.0.4",
   "description": "AirAware v82r3 Android APK package with stronger Android permission handling",
   "private": true,
   "scripts": {

@@ -1,7 +1,7 @@
 {
-  "name": "airaware-v82r1",
-  "version": "1.0.0",
-  "description": "AirAware v82r1 Android APK package",
+  "name": "airaware-v82r3",
+  "version": "1.0.1",
+  "description": "AirAware v82r3 Android APK package with stronger Android permission handling",
   "private": true,
   "scripts": {
     "sync": "npx cap sync android",
@@ -10,7 +10,9 @@
   "dependencies": {
     "@capacitor/android": "^7.4.4",
     "@capacitor/cli": "^7.4.4",
-    "@capacitor/core": "^7.4.4"
+    "@capacitor/core": "^7.4.4",
+    "@capacitor/geolocation": "^7.1.5",
+    "@capacitor/camera": "^7.0.2"
   },
   "devDependencies": {}
 }

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- AirAware v82r5: Wellness report API routed to AirTrueIQ Vercel /api/openai -->
+<!-- AirAware v82r6: Wellness report API routed to AirTrueIQ Vercel /api/openai -->
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>AirAware v82r5</title>
+<title>AirAware v82r6</title>
 <style>
   body{margin:0;background:radial-gradient(circle at top,#ffffff 0,#eef6ff 38%,#e8edf5 100%);font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;color:#0f172a}
   .app{max-width:480px;margin:auto;padding:16px}
@@ -247,7 +247,7 @@ body{padding-top:calc(var(--apkSafeTop) + env(safe-area-inset-top, 0px));box-siz
 <body>
 <div id="pullRefreshHint" class="pullRefreshHint">Pull to refresh live air data</div>
 <div class="app">
-  <h1>AirAware <span style="font-size:15px;color:#2563eb;vertical-align:middle">v82r5</span></h1>
+  <h1>AirAware <span style="font-size:15px;color:#2563eb;vertical-align:middle">v82r6</span></h1>
   <div class="muted" id="locationLine">No live data loaded</div>
   <button class="light" onclick="openGuideLegend()">Guide / Legend / Terms</button>
 
@@ -751,7 +751,7 @@ async function getBestPositionForApk(){
 }
 
 
-// AirAware v82r5 + dynamic DA switch + timestamped report page + AirTrueIQ OpenAI API endpoint.
+// AirAware v82r6 + dynamic DA switch + timestamped report page + AirTrueIQ OpenAI API endpoint.
 const R_D=287.05, R_V=461.5, RHO_0=1.225;
 let personalSensitivity = 0; let latestDeltaH = null; let latestDelta30 = null; let latestEffect = 'No Data';
 let gpsCoords = null;
@@ -1592,19 +1592,56 @@ async function generateWellnessReport(){
   const box=document.getElementById('wellnessReportBox');
   const out=document.getElementById('wellnessReportText');
   if(!box || !out) return;
+
   box.style.display='block';
   const payload=buildAirAwarePayload();
-  if(latestDeltaH===null){ renderWellnessReport(localReportFromPayload(payload), payload, 'local'); return; }
-  if(!navigator.onLine){ showOfflineMessage(); return; }
-  out.innerHTML='<span class="netBadge good">Online</span> Generating wellness report...';
+
+  /*
+    v82r6:
+    Always try the AirTrueIQ OpenAI endpoint first.
+    Previous versions returned local/default report immediately when latestDeltaH was null.
+    That made the APK appear as if it was not even trying to fetch.
+  */
+  const endpoint = 'https://airtrueiq.com/api/openai';
   try{
-    const res=await fetchWithTimeout(getApiEndpoint(), {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}, 14000);
-    if(!res.ok) throw new Error('Report server unavailable');
-    const data=await res.json();
+    localStorage.setItem('airawareApiEndpoint', endpoint);
+    const epInput=document.getElementById('apiEndpoint');
+    if(epInput) epInput.value = endpoint;
+  }catch(e){}
+
+  if(!navigator.onLine){
+    out.innerHTML='<span class="netBadge bad">Offline</span> No internet connection. Showing local fallback report.';
+    renderWellnessReport(localReportFromPayload(payload), payload, 'local');
+    return;
+  }
+
+  out.innerHTML='<span class="netBadge good">Online</span> Contacting AirTrueIQ OpenAI report service...';
+
+  try{
+    const res=await fetchWithTimeout(endpoint, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    }, 18000);
+
+    const raw = await res.text();
+    let data = null;
+
+    try{
+      data = raw ? JSON.parse(raw) : null;
+    }catch(parseErr){
+      throw new Error('Report server returned non-JSON response: ' + raw.slice(0,160));
+    }
+
+    if(!res.ok){
+      throw new Error((data && (data.error || data.message)) ? (data.error || data.message) : ('Report server HTTP '+res.status));
+    }
+
     renderWellnessReport(data, payload, 'ai');
   }catch(e){
     const local=localReportFromPayload(payload);
-    local.summary += ' The AI report server was not reachable, so this is a local fallback report for testing.';
+    local.summary += ' AI report fetch failed: ' + (e.message || e) + '. Showing local fallback so the app remains usable.';
+    out.innerHTML='<span class="netBadge bad">AI fetch failed</span> '+esc(e.message || e);
     renderWellnessReport(local, payload, 'local');
   }
 }
@@ -2418,7 +2455,7 @@ function pldImpact(){
   if(pos >= 24) return {level:'NOTICE',pos,note:`Noticeable movement driven by ${driver}.`,active:false,driver};
   return {level:'STABLE',pos,note:`PLD movement is below tangible threshold. Driver: ${driver}.`,active:false,driver};
 }
-/* v82r5: animated real-time direct-coordinate gauge needle + AirTrueIQ OpenAI endpoint.
+/* v82r6: animated real-time direct-coordinate gauge needle + AirTrueIQ OpenAI endpoint.
    Uses real PLD load position only. Smoothly moves from prior position to latest value. */
 let pldNeedleCurrentPos = null;
 let pldNeedleAnimFrame = null;

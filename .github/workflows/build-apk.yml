@@ -26,7 +26,7 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      -      - name: Install npm dependencies
+      - name: Install npm dependencies
         run: npm install
 
       - name: Add Android platform if missing or incomplete
@@ -38,11 +38,13 @@ jobs:
           else
             echo "Android platform already exists."
           fi
+
       - name: Sync Capacitor
         run: npx cap sync android
 
       - name: Restore required AndroidManifest permissions
         run: |
+          mkdir -p android/app/src/main
           cat > android/app/src/main/AndroidManifest.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -125,8 +127,14 @@ jobs:
               <external-path name="external_files" path="." />
           </paths>
           EOF
+
       - name: Install AirAware app icon
         run: |
+          if [ ! -f "www/airaware-icon.png" ]; then
+            echo "ERROR: www/airaware-icon.png not found"
+            exit 1
+          fi
+
           mkdir -p android/app/src/main/res/mipmap-mdpi
           mkdir -p android/app/src/main/res/mipmap-hdpi
           mkdir -p android/app/src/main/res/mipmap-xhdpi
@@ -147,13 +155,21 @@ jobs:
 
           cp www/airaware-icon.png android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
           cp www/airaware-icon.png android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png
-      - name: Verify Android permissions
+
+      - name: Verify Android permissions and icon
         run: |
           echo "Checking AndroidManifest permissions..."
           grep -n "ACCESS_FINE_LOCATION" android/app/src/main/AndroidManifest.xml
           grep -n "ACCESS_COARSE_LOCATION" android/app/src/main/AndroidManifest.xml
           grep -n "CAMERA" android/app/src/main/AndroidManifest.xml
           grep -n "INTERNET" android/app/src/main/AndroidManifest.xml
+
+          echo "Checking app icon..."
+          ls -lh android/app/src/main/res/mipmap-mdpi/ic_launcher.png
+          ls -lh android/app/src/main/res/mipmap-hdpi/ic_launcher.png
+          ls -lh android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
+          ls -lh android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+          ls -lh android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
 
       - name: Make Gradle executable
         run: chmod +x android/gradlew

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- AirAware v82r6: Wellness report API routed to AirTrueIQ Vercel /api/openai -->
+<!-- AirAware v82r7: Wellness report API routed to AirTrueIQ Vercel /api/openai -->
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>AirAware v82r6</title>
+<title>AirAware v82r7</title>
 <style>
   body{margin:0;background:radial-gradient(circle at top,#ffffff 0,#eef6ff 38%,#e8edf5 100%);font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;color:#0f172a}
   .app{max-width:480px;margin:auto;padding:16px}
@@ -247,7 +247,7 @@ body{padding-top:calc(var(--apkSafeTop) + env(safe-area-inset-top, 0px));box-siz
 <body>
 <div id="pullRefreshHint" class="pullRefreshHint">Pull to refresh live air data</div>
 <div class="app">
-  <h1>AirAware <span style="font-size:15px;color:#2563eb;vertical-align:middle">v82r6</span></h1>
+  <h1>AirAware <span style="font-size:15px;color:#2563eb;vertical-align:middle">v82r7</span></h1>
   <div class="muted" id="locationLine">No live data loaded</div>
   <button class="light" onclick="openGuideLegend()">Guide / Legend / Terms</button>
 
@@ -751,7 +751,7 @@ async function getBestPositionForApk(){
 }
 
 
-// AirAware v82r6 + dynamic DA switch + timestamped report page + AirTrueIQ OpenAI API endpoint.
+// AirAware v82r7 + dynamic DA switch + timestamped report page + AirTrueIQ OpenAI API endpoint.
 const R_D=287.05, R_V=461.5, RHO_0=1.225;
 let personalSensitivity = 0; let latestDeltaH = null; let latestDelta30 = null; let latestEffect = 'No Data';
 let gpsCoords = null;
@@ -1589,60 +1589,105 @@ async function fetchWithTimeout(url, options={}, ms=14000){
   try{return await fetch(url,{...options,signal:c.signal});}finally{clearTimeout(timer)}
 }
 async function generateWellnessReport(){
-  const box=document.getElementById('wellnessReportBox');
-  const out=document.getElementById('wellnessReportText');
-  if(!box || !out) return;
+  const box = document.getElementById('wellnessReportBox');
+  const out = document.getElementById('wellnessReportText');
 
-  box.style.display='block';
-  const payload=buildAirAwarePayload();
+  if(box) box.style.display = 'block';
+  if(out) out.innerHTML = '<span class="netBadge warn">Calling AirTrueIQ API...</span> Please wait.';
 
-  /*
-    v82r6:
-    Always try the AirTrueIQ OpenAI endpoint first.
-    Previous versions returned local/default report immediately when latestDeltaH was null.
-    That made the APK appear as if it was not even trying to fetch.
-  */
   const endpoint = 'https://airtrueiq.com/api/openai';
+
   try{
-    localStorage.setItem('airawareApiEndpoint', endpoint);
-    const epInput=document.getElementById('apiEndpoint');
+    const epInput = document.getElementById('apiEndpoint');
     if(epInput) epInput.value = endpoint;
+    localStorage.setItem('airawareApiEndpoint', endpoint);
   }catch(e){}
 
+  let payload = {};
+  try{
+    if(typeof buildAirAwarePayload === 'function'){
+      payload = buildAirAwarePayload();
+    } else {
+      payload = {
+        source: 'AirAware APK',
+        version: 'v82r7',
+        locationLine: document.getElementById('locationLine')?.innerText || '',
+        score: document.getElementById('score')?.innerText || '',
+        city: document.getElementById('scoreCity')?.innerText || '',
+        country: document.getElementById('scoreCountry')?.innerText || '',
+        effectTitle: document.getElementById('effectTitle')?.innerText || '',
+        effectMsg: document.getElementById('effectMsg')?.innerText || '',
+        raw: document.getElementById('raw')?.innerText || '',
+        computed: document.getElementById('computed')?.innerText || '',
+        pulse: document.getElementById('pulseVal')?.innerText || '',
+        bp: ((document.getElementById('sigSys')?.value || '') + '/' + (document.getElementById('sigDia')?.value || '')),
+        sensitivity: document.getElementById('sensitivity')?.value || ''
+      };
+    }
+  }catch(e){
+    payload = { source:'AirAware APK', version:'v82r7', payloadError:String(e.message||e) };
+  }
+
+  payload.endpointTest = endpoint;
+  payload.requestedAt = new Date().toISOString();
+
   if(!navigator.onLine){
-    out.innerHTML='<span class="netBadge bad">Offline</span> No internet connection. Showing local fallback report.';
-    renderWellnessReport(localReportFromPayload(payload), payload, 'local');
+    if(out) out.innerHTML = '<span class="netBadge bad">Offline</span> Phone reports no internet connection.';
+    try{
+      if(typeof renderWellnessReport === 'function' && typeof localReportFromPayload === 'function'){
+        renderWellnessReport(localReportFromPayload(payload), payload, 'local');
+      }
+    }catch(e){}
     return;
   }
 
-  out.innerHTML='<span class="netBadge good">Online</span> Contacting AirTrueIQ OpenAI report service...';
+  const controller = new AbortController();
+  const timeout = setTimeout(()=>controller.abort(), 20000);
 
   try{
-    const res=await fetchWithTimeout(endpoint, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(payload)
-    }, 18000);
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
 
-    const raw = await res.text();
+    clearTimeout(timeout);
+
+    const rawText = await res.text();
     let data = null;
 
     try{
-      data = raw ? JSON.parse(raw) : null;
-    }catch(parseErr){
-      throw new Error('Report server returned non-JSON response: ' + raw.slice(0,160));
+      data = rawText ? JSON.parse(rawText) : {};
+    }catch(e){
+      throw new Error('API returned non-JSON: ' + rawText.slice(0,180));
     }
 
     if(!res.ok){
-      throw new Error((data && (data.error || data.message)) ? (data.error || data.message) : ('Report server HTTP '+res.status));
+      throw new Error(data.error || data.message || ('HTTP ' + res.status));
     }
 
-    renderWellnessReport(data, payload, 'ai');
+    if(out) out.innerHTML = '<span class="netBadge good">AI report received</span>';
+
+    if(typeof renderWellnessReport === 'function'){
+      renderWellnessReport(data, payload, 'ai');
+    } else if(out){
+      out.textContent = JSON.stringify(data, null, 2);
+    }
   }catch(e){
-    const local=localReportFromPayload(payload);
-    local.summary += ' AI report fetch failed: ' + (e.message || e) + '. Showing local fallback so the app remains usable.';
-    out.innerHTML='<span class="netBadge bad">AI fetch failed</span> '+esc(e.message || e);
-    renderWellnessReport(local, payload, 'local');
+    clearTimeout(timeout);
+    const msg = e.name === 'AbortError' ? 'API request timed out after 20 seconds.' : (e.message || String(e));
+    if(out) out.innerHTML = '<span class="netBadge bad">AI API failed</span> ' + msg;
+
+    try{
+      if(typeof renderWellnessReport === 'function' && typeof localReportFromPayload === 'function'){
+        const local = localReportFromPayload(payload);
+        local.summary = (local.summary || '') + ' AirTrueIQ API failed: ' + msg;
+        renderWellnessReport(local, payload, 'local');
+      }
+    }catch(localErr){
+      if(out) out.innerHTML += '<br>Local fallback also failed: ' + (localErr.message || localErr);
+    }
   }
 }
 
@@ -2455,7 +2500,7 @@ function pldImpact(){
   if(pos >= 24) return {level:'NOTICE',pos,note:`Noticeable movement driven by ${driver}.`,active:false,driver};
   return {level:'STABLE',pos,note:`PLD movement is below tangible threshold. Driver: ${driver}.`,active:false,driver};
 }
-/* v82r6: animated real-time direct-coordinate gauge needle + AirTrueIQ OpenAI endpoint.
+/* v82r7: animated real-time direct-coordinate gauge needle + AirTrueIQ OpenAI endpoint.
    Uses real PLD load position only. Smoothly moves from prior position to latest value. */
 let pldNeedleCurrentPos = null;
 let pldNeedleAnimFrame = null;

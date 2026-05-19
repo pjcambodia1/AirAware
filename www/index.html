@@ -625,7 +625,7 @@ body{padding-top:calc(var(--apkSafeTop) + env(safe-area-inset-top, 0px));box-siz
           <div><label>Age range</label><select id="ageGroup"><option value="adult">Adult</option><option value="young_adult">Young adult</option><option value="senior">Senior</option><option value="minor">Teen/minor</option></select></div>
           <div><label>BP profile</label><select id="bpProfileSelect"><option value="auto">Auto from BP input</option><option value="low">Low BP tendency</option><option value="average">Average BP</option><option value="high">High BP tendency</option><option value="unknown">Unknown</option></select></div>
           <div><label>Current symptoms</label><select id="symptomSelect"><option value="none">None</option><option value="headache">Headache</option><option value="lightheaded">Lightheaded</option><option value="breathing_sensitivity">Breathing sensitivity</option><option value="fatigue">Fatigue</option></select></div>
-          <div><label>API endpoint</label><input id="apiEndpoint" value="https://airtrueiq.com/api/openai" oninput="localStorage.setItem('airawareApiEndpoint', this.value)" placeholder="https://airtrueiq.com/api/openai"></div>
+          <div><label>API endpoint</label><input id="apiEndpoint" value="https://www.airtrueiq.com/api/openai" oninput="localStorage.setItem('airawareApiEndpoint', this.value)" placeholder="https://www.airtrueiq.com/api/openai"></div>
         </div>
       </div>
 
@@ -1358,7 +1358,7 @@ function getApiEndpoint(){
   const el=document.getElementById('apiEndpoint');
   const saved=localStorage.getItem('airawareApiEndpoint');
   if(el && saved && el.value !== saved) el.value=saved;
-  return (el?.value || saved || 'https://airtrueiq.com/api/openai').trim();
+  return (el?.value || saved || 'https://www.airtrueiq.com/api/openai').trim();
 }
 function bpSummary(){
   const bp=bpLoadFactor();
@@ -1601,7 +1601,7 @@ async function generateWellnessReport(){
   if(box) box.style.display = 'block';
   if(out) out.innerHTML = '<span class="netBadge warn">Calling AirTrueIQ API...</span> Please wait.';
 
-  const endpoint = 'https://airtrueiq.com/api/openai';
+  const endpoint = 'https://www.airtrueiq.com/api/openai';
 
   try{
     const epInput = document.getElementById('apiEndpoint');
@@ -1817,7 +1817,7 @@ window.addEventListener('offline',()=>{ showOfflineMessage(); });
 setTimeout(()=>{
   const el=document.getElementById('apiEndpoint');
   const saved=localStorage.getItem('airawareApiEndpoint');
-  const defaultEndpoint='https://airtrueiq.com/api/openai';
+  const defaultEndpoint='https://www.airtrueiq.com/api/openai';
   if(el){
     if(saved && saved.includes('/.netlify/functions/openai')){
       el.value=defaultEndpoint;

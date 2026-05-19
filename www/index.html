@@ -1460,6 +1460,58 @@ function buildAirAwarePayload(){
     freshness: latestFreshLabel || 'unknown',
     adaptive: getAdaptiveBias()
   };
+  try{
+    const transition = (typeof detectPostPeakDivergence === 'function') ? detectPostPeakDivergence() : null;
+    const flip = (typeof detectFlipFlopTransition === 'function') ? detectFlipFlopTransition() : null;
+    payload.transitionPattern = transition;
+    if(payload.transitionPattern && flip) payload.transitionPattern.flipFlop = flip;
+    payload.aiSummary = {
+      appVersion:'v82r12',
+      location: {
+        city: plainText(document.getElementById('scoreCity')?.innerHTML)||'',
+        country: plainText(document.getElementById('scoreCountry')?.innerHTML)||'',
+        locationLine: plainText(document.getElementById('locationLine')?.innerHTML)||'',
+        source: payload.source,
+        type: payload.locationType
+      },
+      score: plainText(document.getElementById('score')?.innerHTML)||null,
+      scoreMeaning: plainText(document.getElementById('effectTitle')?.innerHTML)||'',
+      currentAirFeel: plainText(document.getElementById('effectMsg')?.innerHTML)||'',
+      actualElevationM: payload.actualElevationM,
+      densityAltitudeM: payload.densityAltitudeM,
+      daBurdenM: payload.daBurdenM,
+      shift24hM: payload.shift24hM,
+      shift30mM: payload.shift30mM,
+      daVelocityMhr: payload.daVelocityMhr,
+      daAccelerationMhr2: payload.daAccelerationMhr2,
+      densityKgM3: latestAirDensity===null?null:Number(latestAirDensity.toFixed(4)),
+      terrain: payload.terrain,
+      dayNight: payload.dayNight,
+      bpProfile: payload.bpProfile,
+      systolic: payload.systolic,
+      diastolic: payload.diastolic,
+      pulseBpm: payload.pulseBpm,
+      sensitivity: payload.sensitivity,
+      symptom: payload.symptom,
+      highBpRisk: payload.highBpRisk,
+      lowBpRisk: payload.lowBpRisk,
+      bodySensitivityText: plainText(document.getElementById('bodyMapText')?.innerHTML)||'',
+      transitionLabel: transition?.type || transition?.status || 'None',
+      transitionStatus: transition?.status || 'None',
+      transitionSeverity: transition?.level || 'None',
+      ppdStatus: transition?.status || 'None',
+      ppdSummary: transition?.summary || '',
+      compoundTrendSource: transition?.source || 'visible timestamped 6-hour DA/PLD compound trend',
+      densityNormDelta: transition?.densityNormSlope ?? null,
+      pldDelta: transition?.pldSlope ?? null,
+      compoundGapDelta: transition?.compoundGapChange ?? null,
+      compoundGapCurrent: transition?.compoundGapCurrent ?? null,
+      nearConvergence: !!transition?.nearConvergence,
+      flipFlop: flip || null
+    };
+  }catch(e){
+    payload.aiSummaryError=String(e.message||e);
+  }
   payload.patternInsights=getPatternInsights(payload);
   return payload;
 }
@@ -1560,21 +1612,40 @@ function openReportPage(){
   const m=document.getElementById('wellnessReportPageModal'); if(m) m.style.display='flex';
 }
 function closeReportPage(){ const m=document.getElementById('wellnessReportPageModal'); if(m) m.style.display='none'; }
+function normalizeAiReportResponse(r){
+  if(!r) return {};
+  if(r.report && typeof r.report === 'object') return r.report;
+  if(r.reportText && typeof r.reportText === 'string'){
+    try{return JSON.parse(r.reportText);}catch(e){}
+  }
+  return r;
+}
 function renderWellnessReport(r, payload=null, mode='local'){
+  r = normalizeAiReportResponse(r);
   const box=document.getElementById('wellnessReportBox');
   const out=document.getElementById('wellnessReportText');
   if(!box || !out) return;
   box.style.display='block';
   const badge = mode==='ai' ? '<span class="netBadge good">AI report</span>' : mode==='cached' ? '<span class="netBadge warn">Cached report</span>' : '<span class="netBadge warn">Local fallback</span>';
   const online = navigator.onLine ? '<span class="netBadge good">Online</span>' : '<span class="netBadge bad">Offline</span>';
+  const suggestions=(r.suggestions||[]).map(s=>'• '+esc(s)).join('<br>') || '• No specific suggestions returned.';
   const insights=(r.patternInsights||payload?.patternInsights||[]).map(s=>'• '+esc(s)).join('<br>');
+  const ppdLine = r.ppdNote || payload?.transitionPattern?.summary || 'Not specified.';
+  const compoundLine = r.compoundTrendNote || r.airPattern || payload?.aiSummary?.compoundTrendNote || 'Not specified.';
+  const bodyLine = r.bodySensitivityNote || r.bodySignalNote || 'Not specified.';
+  const bpLine = r.bpNote || r.highBpNote || r.lowBpNote || 'Not specified.';
+  const pulseLine = r.pulseNote || (payload?.pulseBpm ? ('Pulse '+payload.pulseBpm+' bpm') : 'Not specified.');
+
   out.innerHTML = `${badge}${online}<span class="netBadge">${esc(r.confidence||'confidence unknown')}</span><br><br>
     <b>${esc(r.headline||'Wellness report')}</b><br><br>
     ${esc(r.summary||'No summary available.')}<br><br>
-    <b>High BP:</b> ${esc(r.highBpNote||'Not specified.')}<br>
-    <b>Low BP:</b> ${esc(r.lowBpNote||'Not specified.')}<br>
-    <b>Body signal:</b> ${esc(r.bodySignalNote||'Not specified.')}<br><br>
-    <b>Suggestions:</b><br>${(r.suggestions||[]).map(s=>'• '+esc(s)).join('<br>')}<br><br>
+    <b>Air pattern:</b> ${esc(r.airPattern||payload?.transitionPattern?.status||'Not specified.')}<br>
+    <b>Compound DA/PLD:</b> ${esc(compoundLine)}<br>
+    <b>PPD / transition:</b> ${esc(ppdLine)}<br>
+    <b>BP:</b> ${esc(bpLine)}<br>
+    <b>Pulse:</b> ${esc(pulseLine)}<br>
+    <b>Body sensitivity:</b> ${esc(bodyLine)}<br><br>
+    <b>Suggestions:</b><br>${suggestions}<br><br>
     <b>Pattern intelligence:</b><br>${insights || '• Save feedback to build pattern awareness.'}<br><br>
     <div class="patternTeaser"><b>This report shows today.</b><br>See whether this pattern repeats over time, which hours show higher environmental intensity, and when transition events cluster.<br><button class="light" onclick="openPatternPreview()">View Your Pattern Preview</button></div>
     <span class="small">${esc(r.disclaimer||'Wellness guidance only. Not medical advice.')}</span>`;
@@ -2956,7 +3027,8 @@ function detectPostPeakDivergence(){
   const parallelTracking=sameDirection && Math.abs(gapChange)<10;
   const ppdOpposite=densityNormSlope>0 && pldNormSlope<0 && pldSlope<=-4;
   const invOpposite=densityNormSlope<0 && pldNormSlope>0 && pldSlope>=4;
-  const gapOpenedFast=gapChange>=10;
+  const gapOpenedFast=Number.isFinite(gapChange) && gapChange>=18;
+  const gapOpenedLimited=Number.isFinite(gapChange) && gapChange>0 && gapChange<18;
 
   let result={active:false,type:'None',status:'None',level:'None',currentTime:c.time,previousTime:b.time,priorTime:a.time,currentDensity:c.density,currentPLD:c.pld,previousDensity:b.density,previousPLD:b.pld,densitySlope:+densitySlope.toFixed(3),pldSlope:+pldSlope.toFixed(1),densityNormSlope:+densityNormSlope.toFixed(1),pldNormSlope:+pldNormSlope.toFixed(1),compoundGapPrior:+gapPrior.toFixed(1),compoundGapPrev:+gapPrev.toFixed(1),compoundGapCurrent:+gapCurrent.toFixed(1),compoundGapChange:+gapChange.toFixed(1),priorGapChange:+priorGapChange.toFixed(1),dropFromVisiblePeak:+dropFromVisiblePeak.toFixed(1),reboundFromVisibleLow:+reboundFromVisibleLow.toFixed(1),nearConvergence,parallelTracking,rows:enriched,source:'visible timestamped 6-hour DA/PLD compound trend'};
 
@@ -2980,6 +3052,20 @@ function detectPostPeakDivergence(){
 
   const hasRecentPreTrigger=!!state.preTriggerAt || nearConvergence || priorGapChange<0;
 
+  if(hasRecentPreTrigger && ppdOpposite && gapOpenedLimited && dropFromVisiblePeak>=4){
+    setPpdState({preTriggerAt:state.preTriggerAt||nowIso,preTriggerTime:b.time,preGap:+gapPrev.toFixed(1),active:false,lastWatchAt:nowIso});
+    result.active=true;
+    result.type='PPD Watch';
+    result.status='Watch';
+    result.level='Limited';
+    result.directionFeel='Limited descending-gap transition';
+    result.shortHi='Density-rise watch';
+    result.shortLo='Limited descending-gap watch';
+    result.summary='PPD Watch — limited post-convergence widening. Air-density trend is rising while PLD is falling after near-convergence, but the compound gap has not widened enough for full PPD Active.';
+    result.profileNote='Sensitivity warning preserved: lower-BP, narrow-pulse-pressure, or reactive patterns may still notice this watch window.';
+    return result;
+  }
+
   if(hasRecentPreTrigger && ppdOpposite && gapOpenedFast && dropFromVisiblePeak>=4){
     const level=classifyPpdLevel(gapChange,pldSlope);
     setPpdState({active:true,activeAt:nowIso,type:'Post-Peak Divergence',level,lastConfirmedAt:nowIso});
@@ -2993,6 +3079,20 @@ function detectPostPeakDivergence(){
     result.shortLo='Descending-gap watch';
     result.summary='Post-Peak Divergence active. The DA/PLD compound gap widened after near-convergence while air-density trend rose and PLD fell '+Math.abs(result.pldSlope)+' m DA from the previous point.';
     result.profileNote='Sensitive, lower-BP, or narrow-pulse-pressure patterns may notice this descending-gap transition window.';
+    return result;
+  }
+
+  if(hasRecentPreTrigger && invOpposite && gapOpenedLimited && reboundFromVisibleLow>=4){
+    setPpdState({preTriggerAt:state.preTriggerAt||nowIso,preTriggerTime:b.time,preGap:+gapPrev.toFixed(1),active:false,lastWatchAt:nowIso});
+    result.active=true;
+    result.type='Inverse PPD Watch';
+    result.status='Watch';
+    result.level='Limited';
+    result.directionFeel='Limited ascending-gap transition';
+    result.shortHi='Easing-density watch';
+    result.shortLo='Limited ascending-gap watch';
+    result.summary='Inverse PPD Watch — limited post-convergence widening in the opposite direction. The compound gap is widening, but not enough for full Inverse PPD Active.';
+    result.profileNote='Sensitivity warning preserved without overstating the transition.';
     return result;
   }
 

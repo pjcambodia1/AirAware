@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- AirAware v82r8: Wellness report API routed to AirTrueIQ Vercel /api/openai -->
+<!-- AirAware v82r9: Wellness report API routed to AirTrueIQ Vercel /api/openai -->
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>AirAware v82r8</title>
+<title>AirAware v82r9</title>
 <style>
   body{margin:0;background:radial-gradient(circle at top,#ffffff 0,#eef6ff 38%,#e8edf5 100%);font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;color:#0f172a}
   .app{max-width:480px;margin:auto;padding:16px}
@@ -253,7 +253,7 @@ body{padding-top:calc(var(--apkSafeTop) + env(safe-area-inset-top, 0px));box-siz
 <body>
 <div id="pullRefreshHint" class="pullRefreshHint">Pull to refresh live air data</div>
 <div class="app">
-  <h1>AirAware <span style="font-size:15px;color:#2563eb;vertical-align:middle">v82r8</span></h1>
+  <h1>AirAware <span style="font-size:15px;color:#2563eb;vertical-align:middle">v82r9</span></h1>
   <div class="muted" id="locationLine">No live data loaded</div>
   <button class="light" onclick="openGuideLegend()">Guide / Legend / Terms</button>
 
@@ -757,7 +757,7 @@ async function getBestPositionForApk(){
 }
 
 
-// AirAware v82r8 + dynamic DA switch + timestamped report page + AirTrueIQ OpenAI API endpoint.
+// AirAware v82r9 + dynamic DA switch + timestamped report page + AirTrueIQ OpenAI API endpoint.
 const R_D=287.05, R_V=461.5, RHO_0=1.225;
 let personalSensitivity = 0; let latestDeltaH = null; let latestDelta30 = null; let latestEffect = 'No Data';
 let gpsCoords = null;
@@ -1616,7 +1616,7 @@ async function generateWellnessReport(){
     } else {
       payload = {
         source: 'AirAware APK',
-        version: 'v82r8',
+        version: 'v82r9',
         locationLine: document.getElementById('locationLine')?.innerText || '',
         score: document.getElementById('score')?.innerText || '',
         city: document.getElementById('scoreCity')?.innerText || '',
@@ -1631,7 +1631,7 @@ async function generateWellnessReport(){
       };
     }
   }catch(e){
-    payload = { source:'AirAware APK', version:'v82r8', payloadError:String(e.message||e) };
+    payload = { source:'AirAware APK', version:'v82r9', payloadError:String(e.message||e) };
   }
 
   payload.endpointTest = endpoint;
@@ -1690,7 +1690,7 @@ async function generateWellnessReport(){
   }catch(e){
     clearTimeout(timeout);
     const msg = e.name === 'AbortError' ? 'API request timed out after 20 seconds.' : (e.message || String(e));
-    if(out) out.innerHTML = '<span class="netBadge bad">AI API failed</span> ' + msg;
+    if(out) out.innerHTML = '<span class="netBadge bad">AirTrueIQ API failed</span> ' + msg;
 
     try{
       if(typeof renderWellnessReport === 'function' && typeof localReportFromPayload === 'function'){
@@ -2513,7 +2513,7 @@ function pldImpact(){
   if(pos >= 24) return {level:'NOTICE',pos,note:`Noticeable movement driven by ${driver}.`,active:false,driver};
   return {level:'STABLE',pos,note:`PLD movement is below tangible threshold. Driver: ${driver}.`,active:false,driver};
 }
-/* v82r8: animated real-time direct-coordinate gauge needle + AirTrueIQ OpenAI endpoint.
+/* v82r9: animated real-time direct-coordinate gauge needle + AirTrueIQ OpenAI endpoint.
    Uses real PLD load position only. Smoothly moves from prior position to latest value. */
 let pldNeedleCurrentPos = null;
 let pldNeedleAnimFrame = null;
@@ -2943,15 +2943,28 @@ function updatePpdDisplay(){
     }
   }
 
-  const bpEffect=document.getElementById('bpEffect');
-  if(bpEffect && ppd.active){
-    const existing=bpEffect.innerText || '';
-    const tag = ppd.type==='Post-Peak Divergence'
-      ? 'PPD: Hi '+ppd.shortHi+' / Lo '+ppd.shortLo
-      : 'Inv PPD: Hi '+ppd.shortHi+' / Lo '+ppd.shortLo;
-    if(!existing.includes('PPD')){
-      bpEffect.innerHTML = (existing && existing !== '—' ? existing + '<br>' : '') + '<span style="font-size:11px">'+tag+'</span>';
+  if(ppd.active){
+    const cards=[...document.querySelectorAll('.bpCard,.riskCard,.trafficCard,.miniCard,.statCard')];
+    const hiCard=cards.find(c=>/High BP/i.test(c.innerText||''));
+    const loCard=cards.find(c=>/Low BP/i.test(c.innerText||''));
+    const effectCard=cards.find(c=>/^Effect/i.test((c.innerText||'').trim()));
+
+    const hiText = ppd.type==='Post-Peak Divergence' ? 'PPD: Density-rise watch' : 'Inv PPD: Easing-density watch';
+    const loText = ppd.type==='Post-Peak Divergence' ? 'PPD: Descending-gap watch' : 'Inv PPD: Ascending-gap watch';
+    const effectText = ppd.type==='Post-Peak Divergence' ? 'PPD active' : 'Inverse PPD active';
+
+    function addSmallLine(card, id, text){
+      if(!card || document.getElementById(id)) return;
+      const div=document.createElement('div');
+      div.id=id;
+      div.style.cssText='font-size:11px;line-height:1.25;margin-top:8px;font-weight:900;color:#334155;word-break:normal;overflow-wrap:normal;';
+      div.textContent=text;
+      card.appendChild(div);
     }
+
+    addSmallLine(hiCard, 'ppdHiBpNote', hiText);
+    addSmallLine(loCard, 'ppdLoBpNote', loText);
+    addSmallLine(effectCard, 'ppdEffectNote', effectText);
   }
 
   return ppd;

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- AirAware v82r7: Wellness report API routed to AirTrueIQ Vercel /api/openai -->
+<!-- AirAware v82r8: Wellness report API routed to AirTrueIQ Vercel /api/openai -->
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>AirAware v82r7</title>
+<title>AirAware v82r8</title>
 <style>
   body{margin:0;background:radial-gradient(circle at top,#ffffff 0,#eef6ff 38%,#e8edf5 100%);font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;color:#0f172a}
   .app{max-width:480px;margin:auto;padding:16px}
@@ -242,12 +242,18 @@ body{padding-top:calc(var(--apkSafeTop) + env(safe-area-inset-top, 0px));box-siz
 .pullRefreshHint{position:fixed;top:8px;left:50%;transform:translateX(-50%) translateY(-80px);z-index:10000;background:#0f172a;color:#fff;border-radius:999px;padding:9px 14px;font-size:12px;font-weight:900;box-shadow:0 10px 28px rgba(15,23,42,.28);transition:transform .22s, opacity .22s;opacity:0;pointer-events:none;}
 .pullRefreshHint.show{transform:translateX(-50%) translateY(0);opacity:1;}
 
+
+/* V82R8_PPD_DORMANT_MODIFIER */
+.ppdInlineNote{display:none;margin-top:8px;background:#fff7ed;border:1px solid #fed7aa;border-radius:14px;padding:9px;font-size:12px;line-height:1.4;color:#7c2d12}
+.ppdInlineNote.active{display:block}
+.ppdTag{display:inline-block;border-radius:999px;background:#0f172a;color:#fff;font-size:10px;font-weight:900;padding:3px 7px;margin-right:5px}
+
 </style>
 </head>
 <body>
 <div id="pullRefreshHint" class="pullRefreshHint">Pull to refresh live air data</div>
 <div class="app">
-  <h1>AirAware <span style="font-size:15px;color:#2563eb;vertical-align:middle">v82r7</span></h1>
+  <h1>AirAware <span style="font-size:15px;color:#2563eb;vertical-align:middle">v82r8</span></h1>
   <div class="muted" id="locationLine">No live data loaded</div>
   <button class="light" onclick="openGuideLegend()">Guide / Legend / Terms</button>
 
@@ -751,7 +757,7 @@ async function getBestPositionForApk(){
 }
 
 
-// AirAware v82r7 + dynamic DA switch + timestamped report page + AirTrueIQ OpenAI API endpoint.
+// AirAware v82r8 + dynamic DA switch + timestamped report page + AirTrueIQ OpenAI API endpoint.
 const R_D=287.05, R_V=461.5, RHO_0=1.225;
 let personalSensitivity = 0; let latestDeltaH = null; let latestDelta30 = null; let latestEffect = 'No Data';
 let gpsCoords = null;
@@ -1610,7 +1616,7 @@ async function generateWellnessReport(){
     } else {
       payload = {
         source: 'AirAware APK',
-        version: 'v82r7',
+        version: 'v82r8',
         locationLine: document.getElementById('locationLine')?.innerText || '',
         score: document.getElementById('score')?.innerText || '',
         city: document.getElementById('scoreCity')?.innerText || '',
@@ -1625,11 +1631,18 @@ async function generateWellnessReport(){
       };
     }
   }catch(e){
-    payload = { source:'AirAware APK', version:'v82r7', payloadError:String(e.message||e) };
+    payload = { source:'AirAware APK', version:'v82r8', payloadError:String(e.message||e) };
   }
 
   payload.endpointTest = endpoint;
   payload.requestedAt = new Date().toISOString();
+
+  try{
+    payload.transitionPattern = detectPostPeakDivergence();
+  }catch(e){
+    payload.transitionPattern = {active:false,error:String(e.message||e)};
+  }
+
 
   if(!navigator.onLine){
     if(out) out.innerHTML = '<span class="netBadge bad">Offline</span> Phone reports no internet connection.';
@@ -2500,7 +2513,7 @@ function pldImpact(){
   if(pos >= 24) return {level:'NOTICE',pos,note:`Noticeable movement driven by ${driver}.`,active:false,driver};
   return {level:'STABLE',pos,note:`PLD movement is below tangible threshold. Driver: ${driver}.`,active:false,driver};
 }
-/* v82r7: animated real-time direct-coordinate gauge needle + AirTrueIQ OpenAI endpoint.
+/* v82r8: animated real-time direct-coordinate gauge needle + AirTrueIQ OpenAI endpoint.
    Uses real PLD load position only. Smoothly moves from prior position to latest value. */
 let pldNeedleCurrentPos = null;
 let pldNeedleAnimFrame = null;
@@ -2798,6 +2811,170 @@ async function airawarePullRefreshNow(){
     }
     pulling=false; active=false;
   }, {passive:true});
+})();
+
+
+
+/* V82R8_PPD_DORMANT_MODIFIER_JS */
+function safeNumFromText(txt){
+  if(txt===null || txt===undefined) return null;
+  const m=String(txt).replace(/[,+]/g,'').match(/-?\d+(\.\d+)?/);
+  return m ? parseFloat(m[0]) : null;
+}
+
+function collectPldTrendRows(){
+  const rows=[];
+  try{
+    const table=document.querySelector('.pldTable');
+    if(!table) return rows;
+    const trs=[...table.querySelectorAll('tbody tr, tr')];
+    trs.forEach(tr=>{
+      const cells=[...tr.querySelectorAll('td')].map(td=>td.innerText.trim());
+      if(cells.length<3) return;
+      const time=cells[0];
+      const density=safeNumFromText(cells[1]);
+      const pld=safeNumFromText(cells[2]);
+      const score=cells[3]!==undefined ? safeNumFromText(cells[3]) : null;
+      if(time && density!==null && pld!==null && !String(time).toLowerCase().includes('time')){
+        rows.push({time,density,pld,score});
+      }
+    });
+  }catch(e){}
+  return rows;
+}
+
+function detectPostPeakDivergence(){
+  const rows=collectPldTrendRows();
+  if(rows.length<3){
+    return {active:false,type:'None',level:'None',summary:'No transition pattern detected.', rows};
+  }
+
+  const current=rows[rows.length-1];
+  const previous=rows[rows.length-2];
+
+  let peakIndex=0, lowIndex=0;
+  for(let i=0;i<rows.length;i++){
+    if(rows[i].pld>rows[peakIndex].pld) peakIndex=i;
+    if(rows[i].pld<rows[lowIndex].pld) lowIndex=i;
+  }
+
+  const peak=rows[peakIndex];
+  const low=rows[lowIndex];
+  const densitySlope=current.density-previous.density;
+  const pldSlope=current.pld-previous.pld;
+  const dropFromPeak=peak.pld-current.pld;
+  const reboundFromLow=current.pld-low.pld;
+
+  const ppdActive = peakIndex < rows.length-1 && dropFromPeak >= 5 && densitySlope > 0 && pldSlope < 0;
+  const invActive = lowIndex < rows.length-1 && reboundFromLow >= 5 && densitySlope < 0 && pldSlope > 0;
+
+  let result={
+    active:false,type:'None',level:'None',
+    peakTime:peak.time, peakPLD:peak.pld,
+    lowTime:low.time, lowPLD:low.pld,
+    currentTime:current.time, currentPLD:current.pld, currentDensity:current.density,
+    densitySlope:+densitySlope.toFixed(3),
+    pldSlope:+pldSlope.toFixed(1),
+    dropFromPeak:+dropFromPeak.toFixed(1),
+    reboundFromLow:+reboundFromLow.toFixed(1),
+    rows
+  };
+
+  if(ppdActive){
+    const level = dropFromPeak>=13 ? 'Strong Watch' : dropFromPeak>=8 ? 'Watch' : 'Notice';
+    result.active=true;
+    result.type='Post-Peak Divergence';
+    result.level=level;
+    result.directionFeel='Descending-gap transition';
+    result.shortHi='Density-rise watch';
+    result.shortLo='Descending-gap watch';
+    result.summary='Post-Peak Divergence detected. Air density is still rising while PLD has dropped '+result.dropFromPeak+' m DA from its recent peak, creating a widening descending-gap transition.';
+    result.profileNote='Sensitive, lower-BP, or narrow-pulse-pressure patterns may notice this transition window.';
+    return result;
+  }
+
+  if(invActive){
+    const level = reboundFromLow>=13 ? 'Strong Watch' : reboundFromLow>=8 ? 'Watch' : 'Notice';
+    result.active=true;
+    result.type='Inverse Post-Peak Divergence';
+    result.level=level;
+    result.directionFeel='Ascending-gap transition';
+    result.shortHi='Easing-density watch';
+    result.shortLo='Ascending-gap watch';
+    result.summary='Inverse Post-Peak Divergence detected. Air density is easing while PLD has rebounded '+result.reboundFromLow+' m DA from its recent low, creating a widening ascending-gap transition.';
+    result.profileNote='Sensitive users may notice this differently by profile; some may feel relief while others may feel groggy or heavy.';
+    return result;
+  }
+
+  result.summary='No PPD or Inverse PPD transition pattern detected.';
+  return result;
+}
+
+function ensurePpdNoteElement(parentId, noteId){
+  const parent=document.getElementById(parentId);
+  if(!parent) return null;
+  let el=document.getElementById(noteId);
+  if(!el){
+    el=document.createElement('div');
+    el.id=noteId;
+    el.className='ppdInlineNote';
+    parent.appendChild(el);
+  }
+  return el;
+}
+
+function updatePpdDisplay(){
+  const ppd=detectPostPeakDivergence();
+
+  const gaugeNote=document.getElementById('pldGaugeNote');
+  if(gaugeNote && ppd.active){
+    gaugeNote.innerHTML = '<span class="ppdTag">'+(ppd.type==='Post-Peak Divergence'?'PPD':'INV PPD')+'</span>' +
+      ppd.level + ' — ' + ppd.directionFeel + '. ' + ppd.profileNote;
+  }
+
+  const verifyNote=ensurePpdNoteElement('verifyStatus','ppdVerifyNote');
+  if(verifyNote){
+    if(ppd.active){
+      verifyNote.classList.add('active');
+      verifyNote.innerHTML='<b>'+ppd.type+': '+ppd.level+'</b><br>'+ppd.summary+'<br><span class="small">'+ppd.profileNote+'</span>';
+    }else{
+      verifyNote.classList.remove('active');
+      verifyNote.innerHTML='';
+    }
+  }
+
+  const bpEffect=document.getElementById('bpEffect');
+  if(bpEffect && ppd.active){
+    const existing=bpEffect.innerText || '';
+    const tag = ppd.type==='Post-Peak Divergence'
+      ? 'PPD: Hi '+ppd.shortHi+' / Lo '+ppd.shortLo
+      : 'Inv PPD: Hi '+ppd.shortHi+' / Lo '+ppd.shortLo;
+    if(!existing.includes('PPD')){
+      bpEffect.innerHTML = (existing && existing !== '—' ? existing + '<br>' : '') + '<span style="font-size:11px">'+tag+'</span>';
+    }
+  }
+
+  return ppd;
+}
+
+(function hookPpdUpdates(){
+  const originalOpen = window.openPldTrend;
+  if(typeof originalOpen === 'function'){
+    window.openPldTrend=function(){
+      const r=originalOpen.apply(this, arguments);
+      setTimeout(updatePpdDisplay,160);
+      return r;
+    };
+  }
+  const originalUpdate = window.updateSensitivity;
+  if(typeof originalUpdate === 'function'){
+    window.updateSensitivity=function(){
+      const r=originalUpdate.apply(this, arguments);
+      setTimeout(updatePpdDisplay,80);
+      return r;
+    };
+  }
+  setInterval(()=>{try{updatePpdDisplay();}catch(e){}},5000);
 })();
 
 </script>

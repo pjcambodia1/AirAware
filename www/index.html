@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- AirAware v82r11: Wellness report API routed to AirTrueIQ Vercel /api/openai -->
+<!-- AirAware v82r12: Wellness report API routed to AirTrueIQ Vercel /api/openai -->
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>AirAware v82r11</title>
+<title>AirAware v82r12</title>
 <style>
   body{margin:0;background:radial-gradient(circle at top,#ffffff 0,#eef6ff 38%,#e8edf5 100%);font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;color:#0f172a}
   .app{max-width:480px;margin:auto;padding:16px}
@@ -253,7 +253,7 @@ body{padding-top:calc(var(--apkSafeTop) + env(safe-area-inset-top, 0px));box-siz
 <body>
 <div id="pullRefreshHint" class="pullRefreshHint">Pull to refresh live air data</div>
 <div class="app">
-  <h1>AirAware <span style="font-size:15px;color:#2563eb;vertical-align:middle">v82r11</span></h1>
+  <h1>AirAware <span style="font-size:15px;color:#2563eb;vertical-align:middle">v82r12</span></h1>
   <div class="muted" id="locationLine">No live data loaded</div>
   <button class="light" onclick="openGuideLegend()">Guide / Legend / Terms</button>
 
@@ -757,7 +757,7 @@ async function getBestPositionForApk(){
 }
 
 
-// AirAware v82r11 + dynamic DA switch + timestamped report page + AirTrueIQ OpenAI API endpoint.
+// AirAware v82r12 + dynamic DA switch + timestamped report page + AirTrueIQ OpenAI API endpoint.
 const R_D=287.05, R_V=461.5, RHO_0=1.225;
 let personalSensitivity = 0; let latestDeltaH = null; let latestDelta30 = null; let latestEffect = 'No Data';
 let gpsCoords = null;
@@ -1616,7 +1616,7 @@ async function generateWellnessReport(){
     } else {
       payload = {
         source: 'AirAware APK',
-        version: 'v82r11',
+        version: 'v82r12',
         locationLine: document.getElementById('locationLine')?.innerText || '',
         score: document.getElementById('score')?.innerText || '',
         city: document.getElementById('scoreCity')?.innerText || '',
@@ -1631,7 +1631,7 @@ async function generateWellnessReport(){
       };
     }
   }catch(e){
-    payload = { source:'AirAware APK', version:'v82r11', payloadError:String(e.message||e) };
+    payload = { source:'AirAware APK', version:'v82r12', payloadError:String(e.message||e) };
   }
 
   payload.endpointTest = endpoint;
@@ -2516,7 +2516,7 @@ function pldImpact(){
   if(pos >= 24) return {level:'NOTICE',pos,note:`Noticeable movement driven by ${driver}.`,active:false,driver};
   return {level:'STABLE',pos,note:`PLD movement is below tangible threshold. Driver: ${driver}.`,active:false,driver};
 }
-/* v82r11: animated real-time direct-coordinate gauge needle + AirTrueIQ OpenAI endpoint.
+/* v82r12: animated real-time direct-coordinate gauge needle + AirTrueIQ OpenAI endpoint.
    Uses real PLD load position only. Smoothly moves from prior position to latest value. */
 let pldNeedleCurrentPos = null;
 let pldNeedleAnimFrame = null;
@@ -2848,7 +2848,7 @@ function collectPldTrendRows(){
 }
 
 /*
-  v82r11 PPD rules:
+  v82r12 PPD rules:
   - Uses only visible timestamped trend table points.
   - No stale localStorage peak.
   - Pre-trigger = convergence or near-convergence.
@@ -2917,71 +2917,54 @@ function classifyPpdLevel(gapOpen, pldMove){
   return 'None';
 }
 
+function normalizeSeries(rows,key){
+  const vals=rows.map(r=>Number(r[key])).filter(Number.isFinite), min=Math.min(...vals), max=Math.max(...vals), range=max-min;
+  return rows.map(r=>{const v=Number(r[key]);return range>0.000001?((v-min)/range)*100:50;});
+}
+
 function detectPostPeakDivergence(){
   const rows=collectPldTrendRows();
   const nowIso=new Date().toISOString();
   const state=getPpdState();
 
   if(rows.length<3){
-    return {active:false,type:'None',status:'Insufficient data',level:'None',summary:'Not enough timestamped trend points for PPD detection.', rows};
+    return {active:false,type:'None',status:'Insufficient data',level:'None',summary:'Not enough timestamped trend points for DA/PLD compound divergence detection.', rows};
   }
 
-  const a=rows[rows.length-3];
-  const b=rows[rows.length-2];
-  const c=rows[rows.length-1];
+  const dNorm=normalizeSeries(rows,'density');
+  const pNorm=normalizeSeries(rows,'pld');
+  const enriched=rows.map((r,i)=>({...r,densityNorm:+dNorm[i].toFixed(1),pldNorm:+pNorm[i].toFixed(1),compoundGap:+(dNorm[i]-pNorm[i]).toFixed(1)}));
+  const a=enriched[enriched.length-3], b=enriched[enriched.length-2], c=enriched[enriched.length-1];
 
-  const gapPrior=Math.abs(a.density - a.pld);
-  const gapPrev=Math.abs(b.density - b.pld);
-  const gapCurrent=Math.abs(c.density - c.pld);
+  const densitySlope=c.density-b.density;
+  const pldSlope=c.pld-b.pld;
+  const densityNormSlope=c.densityNorm-b.densityNorm;
+  const pldNormSlope=c.pldNorm-b.pldNorm;
 
-  const densitySlope=c.density - b.density;
-  const pldSlope=c.pld - b.pld;
-  const gapChange=gapCurrent - gapPrev;
-  const priorGapChange=gapPrev - gapPrior;
+  const gapPrior=Math.abs(a.compoundGap);
+  const gapPrev=Math.abs(b.compoundGap);
+  const gapCurrent=Math.abs(c.compoundGap);
+  const gapChange=gapCurrent-gapPrev;
+  const priorGapChange=gapPrev-gapPrior;
 
-  const nearConvergence = gapPrev <= 5 || priorGapChange < 0;
-  const sameDirection = (densitySlope>0 && pldSlope>0) || (densitySlope<0 && pldSlope<0);
-  const parallelTracking = sameDirection && Math.abs(gapChange) < 4;
+  const visiblePlds=enriched.map(r=>r.pld);
+  const dropFromVisiblePeak=Math.max(...visiblePlds)-c.pld;
+  const reboundFromVisibleLow=c.pld-Math.min(...visiblePlds);
 
-  const ppdOpposite = densitySlope > 0 && pldSlope <= -4;
-  const invOpposite = densitySlope < 0 && pldSlope >= 4;
-  const gapOpenedFast = gapChange >= 4;
+  const nearConvergence=gapPrev<=15 || priorGapChange<0;
+  const sameDirection=(densityNormSlope>0&&pldNormSlope>0)||(densityNormSlope<0&&pldNormSlope<0);
+  const parallelTracking=sameDirection && Math.abs(gapChange)<10;
+  const ppdOpposite=densityNormSlope>0 && pldNormSlope<0 && pldSlope<=-4;
+  const invOpposite=densityNormSlope<0 && pldNormSlope>0 && pldSlope>=4;
+  const gapOpenedFast=gapChange>=10;
 
-  let result={
-    active:false,
-    type:'None',
-    status:'None',
-    level:'None',
-    currentTime:c.time,
-    previousTime:b.time,
-    priorTime:a.time,
-    currentDensity:c.density,
-    currentPLD:c.pld,
-    previousDensity:b.density,
-    previousPLD:b.pld,
-    densitySlope:+densitySlope.toFixed(3),
-    pldSlope:+pldSlope.toFixed(1),
-    gapPrior:+gapPrior.toFixed(1),
-    gapPrev:+gapPrev.toFixed(1),
-    gapCurrent:+gapCurrent.toFixed(1),
-    gapChange:+gapChange.toFixed(1),
-    priorGapChange:+priorGapChange.toFixed(1),
-    nearConvergence,
-    parallelTracking,
-    rows,
-    source:'visible timestamped trend table'
-  };
+  let result={active:false,type:'None',status:'None',level:'None',currentTime:c.time,previousTime:b.time,priorTime:a.time,currentDensity:c.density,currentPLD:c.pld,previousDensity:b.density,previousPLD:b.pld,densitySlope:+densitySlope.toFixed(3),pldSlope:+pldSlope.toFixed(1),densityNormSlope:+densityNormSlope.toFixed(1),pldNormSlope:+pldNormSlope.toFixed(1),compoundGapPrior:+gapPrior.toFixed(1),compoundGapPrev:+gapPrev.toFixed(1),compoundGapCurrent:+gapCurrent.toFixed(1),compoundGapChange:+gapChange.toFixed(1),priorGapChange:+priorGapChange.toFixed(1),dropFromVisiblePeak:+dropFromVisiblePeak.toFixed(1),reboundFromVisibleLow:+reboundFromVisibleLow.toFixed(1),nearConvergence,parallelTracking,rows:enriched,source:'visible timestamped 6-hour DA/PLD compound trend'};
 
   if(nearConvergence && !state.preTriggerAt && !state.active){
-    setPpdState({
-      preTriggerAt: nowIso,
-      preTriggerTime: b.time,
-      preGap:+gapPrev.toFixed(1),
-      active:false
-    });
+    setPpdState({preTriggerAt:nowIso,preTriggerTime:b.time,preGap:+gapPrev.toFixed(1),active:false});
     result.status='Convergence Watch';
     result.level='Pre-trigger';
-    result.summary='Convergence Watch: air density and PLD are converged or narrowing. Revalidating for divergence over the next hour.';
+    result.summary='Convergence Watch: DA/PLD compound gap is near convergence or narrowing. Revalidating for sharp divergence over the next hour.';
     return result;
   }
 
@@ -2990,24 +2973,17 @@ function detectPostPeakDivergence(){
     if(ageMin>60 && !(ppdOpposite || invOpposite)){
       setPpdState({});
       result.status='Pre-trigger reset';
-      result.summary='Pre-trigger reset: no confirming divergence appeared within the one-hour window. Rolling scan continues.';
+      result.summary='Pre-trigger reset: no confirming DA/PLD divergence appeared within the one-hour window. Rolling scan continues.';
       return result;
     }
   }
 
-  const hasRecentPreTrigger = !!state.preTriggerAt || nearConvergence || priorGapChange < 0;
+  const hasRecentPreTrigger=!!state.preTriggerAt || nearConvergence || priorGapChange<0;
 
-  if(hasRecentPreTrigger && ppdOpposite && gapOpenedFast){
-    const level=classifyPpdLevel(gapChange, pldSlope);
-    setPpdState({
-      active:true,
-      activeAt: nowIso,
-      type:'Post-Peak Divergence',
-      level,
-      lastConfirmedAt: nowIso
-    });
+  if(hasRecentPreTrigger && ppdOpposite && gapOpenedFast && dropFromVisiblePeak>=4){
+    const level=classifyPpdLevel(gapChange,pldSlope);
+    setPpdState({active:true,activeAt:nowIso,type:'Post-Peak Divergence',level,lastConfirmedAt:nowIso});
     pushTransitionHistory('Post-Peak Divergence','Active',level);
-
     result.active=true;
     result.type='Post-Peak Divergence';
     result.status='Active';
@@ -3015,22 +2991,15 @@ function detectPostPeakDivergence(){
     result.directionFeel='Descending-gap transition';
     result.shortHi='Density-rise watch';
     result.shortLo='Descending-gap watch';
-    result.summary='Post-Peak Divergence active. Air density is rising while PLD is falling '+Math.abs(result.pldSlope)+' m DA, opening the gap by '+result.gapChange+' m over the latest interval.';
+    result.summary='Post-Peak Divergence active. The DA/PLD compound gap widened after near-convergence while air-density trend rose and PLD fell '+Math.abs(result.pldSlope)+' m DA from the previous point.';
     result.profileNote='Sensitive, lower-BP, or narrow-pulse-pressure patterns may notice this descending-gap transition window.';
     return result;
   }
 
-  if(hasRecentPreTrigger && invOpposite && gapOpenedFast){
-    const level=classifyPpdLevel(gapChange, pldSlope);
-    setPpdState({
-      active:true,
-      activeAt: nowIso,
-      type:'Inverse Post-Peak Divergence',
-      level,
-      lastConfirmedAt: nowIso
-    });
+  if(hasRecentPreTrigger && invOpposite && gapOpenedFast && reboundFromVisibleLow>=4){
+    const level=classifyPpdLevel(gapChange,pldSlope);
+    setPpdState({active:true,activeAt:nowIso,type:'Inverse Post-Peak Divergence',level,lastConfirmedAt:nowIso});
     pushTransitionHistory('Inverse Post-Peak Divergence','Active',level);
-
     result.active=true;
     result.type='Inverse Post-Peak Divergence';
     result.status='Active';
@@ -3038,24 +3007,24 @@ function detectPostPeakDivergence(){
     result.directionFeel='Ascending-gap transition';
     result.shortHi='Easing-density watch';
     result.shortLo='Ascending-gap watch';
-    result.summary='Inverse Post-Peak Divergence active. Air density is easing while PLD is rising '+Math.abs(result.pldSlope)+' m DA, opening the opposite gap by '+result.gapChange+' m over the latest interval.';
+    result.summary='Inverse Post-Peak Divergence active. The DA/PLD compound gap widened in the opposite direction while air-density trend eased and PLD rose '+Math.abs(result.pldSlope)+' m DA from the previous point.';
     result.profileNote='Sensitive users may notice this differently by profile; some may feel relief while others may feel groggy or heavy.';
     return result;
   }
 
   if(state.active){
-    const ageMin=(Date.now()-Date.parse(state.lastConfirmedAt || state.activeAt || nowIso))/60000;
+    const ageMin=(Date.now()-Date.parse(state.lastConfirmedAt||state.activeAt||nowIso))/60000;
     if(parallelTracking || sameDirection){
       setPpdState({});
       result.status='Cleared';
       result.level='Cleared';
-      result.summary='PPD cleared: air density and PLD are now tracking together again.';
+      result.summary='PPD cleared: the DA/PLD compound trends are tracking together again.';
       return result;
     }
-    if(gapChange < 0){
+    if(gapChange<0){
       result.status='Easing';
       result.level='Easing';
-      result.summary='PPD easing: the prior divergence gap is narrowing.';
+      result.summary='PPD easing: the DA/PLD compound divergence gap is narrowing.';
       return result;
     }
     if(ageMin>180){
@@ -3067,10 +3036,10 @@ function detectPostPeakDivergence(){
     }
   }
 
-  result.status = parallelTracking ? 'Parallel Tracking' : 'No active PPD';
-  result.summary = parallelTracking
-    ? 'Parallel Tracking: air density and PLD are moving together, whether above or below baseline.'
-    : 'No active PPD or Inverse PPD. Latest timestamped points do not show sharp opposite-slope divergence after convergence.';
+  result.status=parallelTracking?'Parallel Tracking':'No active PPD';
+  result.summary=parallelTracking
+    ? 'Parallel Tracking: DA/PLD compound trends are moving together, whether above or below baseline.'
+    : 'No active PPD or Inverse PPD. Latest timestamped points do not show sharp compound divergence after convergence.';
   return result;
 }
 
@@ -3102,9 +3071,9 @@ function updatePpdDisplay(){
       verifyNote.classList.add('active');
       verifyNote.innerHTML='<b>Transition Pattern: '+ppd.status+'</b><br>'+ppd.summary+
         '<br><span class="small">Source: '+(ppd.source||'visible trend')+
-        ' | ΔDensity: '+(ppd.densitySlope ?? '—')+
+        ' | ΔDensityNorm: '+(ppd.densitySlope ?? '—')+
         ' | ΔPLD: '+(ppd.pldSlope ?? '—')+
-        ' | ΔGap: '+(ppd.gapChange ?? '—')+'</span>';
+        ' | ΔCompoundGap: '+(ppd.gapChange ?? '—')+'</span>';
     }else{
       verifyNote.classList.remove('active');
       verifyNote.innerHTML='';

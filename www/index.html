@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- AirAware v82r12: Wellness report API routed to AirTrueIQ Vercel /api/openai -->
+<!-- AirAware v82r15: License activation gate + report lifecycle + AirTrueIQ Vercel API -->
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>AirAware v82r12</title>
+<title>AirAware v82r14</title>
 <style>
   body{margin:0;background:radial-gradient(circle at top,#ffffff 0,#eef6ff 38%,#e8edf5 100%);font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;color:#0f172a}
   .app{max-width:480px;margin:auto;padding:16px}
@@ -248,12 +248,48 @@ body{padding-top:calc(var(--apkSafeTop) + env(safe-area-inset-top, 0px));box-siz
 .ppdInlineNote.active{display:block}
 .ppdTag{display:inline-block;border-radius:999px;background:#0f172a;color:#fff;font-size:10px;font-weight:900;padding:3px 7px;margin-right:5px}
 
+
+
+/* V82R15_LICENSE_GATE */
+.licenseGateBack{position:fixed;inset:0;background:rgba(2,6,23,.82);display:none;align-items:center;justify-content:center;padding:14px;z-index:20000;backdrop-filter:blur(6px)}
+.licenseGateBack.active{display:flex}
+.licenseGate{background:#fff;color:#0f172a;border-radius:26px;max-width:460px;width:100%;padding:18px;box-shadow:0 28px 90px rgba(0,0,0,.46);border:1px solid #e2e8f0}
+.licenseGate h2{margin:0 0 5px;font-size:28px;line-height:1.05}
+.licenseGate .sub{color:#64748b;font-size:13px;line-height:1.4;margin-bottom:12px}
+.licenseInput{width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:16px;padding:13px;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;background:#f8fafc}
+.licenseStatus{margin-top:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:10px;font-size:13px;line-height:1.45;color:#475569}
+.licenseStatus.good{background:#f0fdf4;border-color:#bbf7d0;color:#15803d;font-weight:800}
+.licenseStatus.bad{background:#fef2f2;border-color:#fecaca;color:#b91c1c;font-weight:800}
+.licenseMeta{font-size:11px;color:#64748b;line-height:1.4;margin-top:9px}
+.licenseGateActions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.licenseGateActions button{margin-top:0}
+.licenseTinyBtn{font-size:11px;border:0;background:transparent;color:#64748b;text-decoration:underline;padding:4px;margin-top:6px;width:auto;box-shadow:none}
+
 </style>
 </head>
 <body>
+
+
+<!-- V82R15_LICENSE_GATE -->
+<div class="licenseGateBack" id="licenseGateBack" aria-modal="true" role="dialog">
+  <div class="licenseGate">
+    <h2>Activate AirAware</h2>
+    <div class="sub">Enter your AirTrueIQ / AirAware license key to unlock this APK on this device.</div>
+    <label>License key</label>
+    <input id="licenseKeyInput" class="licenseInput" placeholder="AIRTRUEIQ-XXXX-XXXX" autocomplete="off" />
+    <div class="licenseGateActions">
+      <button onclick="verifyAirAwareLicense()">Verify License</button>
+      <button class="light" onclick="retrySavedAirAwareLicense()">Retry Saved</button>
+    </div>
+    <div class="licenseStatus" id="licenseStatusBox">Waiting for license key.</div>
+    <div class="licenseMeta" id="licenseMetaBox">Device ID will be generated locally and used only for license activation limits.</div>
+    <button class="licenseTinyBtn" onclick="clearAirAwareLicenseForSupport()">Clear saved license for support</button>
+  </div>
+</div>
+
 <div id="pullRefreshHint" class="pullRefreshHint">Pull to refresh live air data</div>
 <div class="app">
-  <h1>AirAware <span style="font-size:15px;color:#2563eb;vertical-align:middle">v82r12</span></h1>
+  <h1>AirAware <span style="font-size:15px;color:#2563eb;vertical-align:middle">v82r14</span></h1>
   <div class="muted" id="locationLine">No live data loaded</div>
   <button class="light" onclick="openGuideLegend()">Guide / Legend / Terms</button>
 
@@ -1466,7 +1502,7 @@ function buildAirAwarePayload(){
     payload.transitionPattern = transition;
     if(payload.transitionPattern && flip) payload.transitionPattern.flipFlop = flip;
     payload.aiSummary = {
-      appVersion:'v82r12',
+      appVersion:'v82r14',
       location: {
         city: plainText(document.getElementById('scoreCity')?.innerHTML)||'',
         country: plainText(document.getElementById('scoreCountry')?.innerHTML)||'',
@@ -1585,9 +1621,12 @@ function reportRecordToText(record){
   lines.push('');
   lines.push(r.summary||'');
   lines.push('');
-  lines.push('High BP: '+(r.highBpNote||'Not specified.'));
-  lines.push('Low BP: '+(r.lowBpNote||'Not specified.'));
-  lines.push('Body signal: '+(r.bodySignalNote||'Not specified.'));
+  lines.push('Air pattern: '+(r.airPattern||'Not specified.'));
+  lines.push('Compound DA/PLD: '+(r.compoundTrendNote||'Not specified.'));
+  lines.push('PPD / transition: '+(r.ppdNote||'Not specified.'));
+  lines.push('BP: '+(r.bpNote||r.highBpNote||r.lowBpNote||'Not specified.'));
+  lines.push('Pulse: '+(r.pulseNote||'Not specified.'));
+  lines.push('Body sensitivity: '+(r.bodySensitivityNote||r.bodySignalNote||'Not specified.'));
   lines.push('');
   lines.push('Dynamic DA: '+(p.daVelocityMhr===null||p.daVelocityMhr===undefined?'—':p.daVelocityMhr+' m/hr')+' | Accel: '+(p.daAccelerationMhr2===null||p.daAccelerationMhr2===undefined?'—':p.daAccelerationMhr2+' m/hr²')+' | Transition: '+(p.transitionFlip?'YES':'NO')+' | Trigger: '+(p.dynamicTrigger||'OFF'));
   lines.push('');
@@ -1665,14 +1704,14 @@ async function fetchWithTimeout(url, options={}, ms=14000){
   const c=new AbortController(); const timer=setTimeout(()=>c.abort(),ms);
   try{return await fetch(url,{...options,signal:c.signal});}finally{clearTimeout(timer)}
 }
-async function generateWellnessReport(){
+async function generateWellnessReport(force=false){
   const box = document.getElementById('wellnessReportBox');
   const out = document.getElementById('wellnessReportText');
 
   if(box) box.style.display = 'block';
-  if(out) out.innerHTML = '<span class="netBadge warn">Calling AirTrueIQ API...</span> Please wait.';
 
   const endpoint = 'https://www.airtrueiq.com/api/openai';
+  const AI_TIMEOUT_MS = 60000;
 
   try{
     const epInput = document.getElementById('apiEndpoint');
@@ -1687,7 +1726,7 @@ async function generateWellnessReport(){
     } else {
       payload = {
         source: 'AirAware APK',
-        version: 'v82r12',
+        version: 'v82r14',
         locationLine: document.getElementById('locationLine')?.innerText || '',
         score: document.getElementById('score')?.innerText || '',
         city: document.getElementById('scoreCity')?.innerText || '',
@@ -1702,7 +1741,7 @@ async function generateWellnessReport(){
       };
     }
   }catch(e){
-    payload = { source:'AirAware APK', version:'v82r12', payloadError:String(e.message||e) };
+    payload = { source:'AirAware APK', version:'v82r14', payloadError:String(e.message||e) };
   }
 
   payload.endpointTest = endpoint;
@@ -1717,9 +1756,27 @@ async function generateWellnessReport(){
     payload.transitionPattern = {active:false,error:String(e.message||e)};
   }
 
+  let payloadHash = '';
+  try{ payloadHash = hashPayload(payload); }catch(e){ payloadHash = String(Date.now()); }
+  payload.payloadHash = payloadHash;
+
+  const previous = lastReportRecord();
+  const previousWasAi = previous && previous.mode === 'ai' && previous.data;
+  const samePayload = previousWasAi && previous.payload && previous.payload.payloadHash === payloadHash;
+
+  if(!force && samePayload){
+    if(out) out.innerHTML = '<span class="netBadge warn">Same data</span> Showing last successful AI report. Refresh weather data or regenerate after conditions change.';
+    renderWellnessReport(previous.data, previous.payload, 'cached');
+    return;
+  }
 
   if(!navigator.onLine){
-    if(out) out.innerHTML = '<span class="netBadge bad">Offline</span> Phone reports no internet connection.';
+    if(previousWasAi){
+      if(out) out.innerHTML = '<span class="netBadge bad">Offline</span> Showing last successful AI report.';
+      renderWellnessReport(previous.data, previous.payload, 'cached');
+      return;
+    }
+    if(out) out.innerHTML = '<span class="netBadge bad">Offline</span> Phone reports no internet connection. Showing local fallback.';
     try{
       if(typeof renderWellnessReport === 'function' && typeof localReportFromPayload === 'function'){
         renderWellnessReport(localReportFromPayload(payload), payload, 'local');
@@ -1728,8 +1785,10 @@ async function generateWellnessReport(){
     return;
   }
 
+  if(out) out.innerHTML = '<span class="netBadge warn">Calling AirTrueIQ API...</span> Waiting for online AI report. Timeout set to 60 seconds.';
+
   const controller = new AbortController();
-  const timeout = setTimeout(()=>controller.abort(), 20000);
+  const timeout = setTimeout(()=>controller.abort(), AI_TIMEOUT_MS);
 
   try{
     const res = await fetch(endpoint, {
@@ -1754,7 +1813,7 @@ async function generateWellnessReport(){
       throw new Error(data.error || data.message || ('HTTP ' + res.status));
     }
 
-    if(out) out.innerHTML = '<span class="netBadge good">AI report received</span>';
+    if(out) out.innerHTML = '<span class="netBadge good">Online AI report received</span>';
 
     if(typeof renderWellnessReport === 'function'){
       renderWellnessReport(data, payload, 'ai');
@@ -1763,17 +1822,26 @@ async function generateWellnessReport(){
     }
   }catch(e){
     clearTimeout(timeout);
-    const msg = e.name === 'AbortError' ? 'API request timed out after 20 seconds.' : (e.message || String(e));
-    if(out) out.innerHTML = '<span class="netBadge bad">AirTrueIQ API failed</span> ' + msg;
+    const msg = e.name === 'AbortError' ? 'AI report request timed out after 60 seconds.' : (e.message || String(e));
+
+    if(previousWasAi){
+      if(out) out.innerHTML = '<span class="netBadge bad">New AI refresh failed</span> ' + esc(msg) + '<br><span class="netBadge warn">Showing last successful AI report</span>';
+      const cached = normalizeAiReportResponse(previous.data);
+      cached.summary = (cached.summary || '') + ' New online refresh failed: ' + msg + ' Last successful AI report is being shown instead of replacing it with a local fallback.';
+      renderWellnessReport(cached, previous.payload, 'cached');
+      return;
+    }
+
+    if(out) out.innerHTML = '<span class="netBadge bad">AirTrueIQ API failed</span> ' + esc(msg) + '<br><span class="netBadge warn">Showing local fallback</span>';
 
     try{
       if(typeof renderWellnessReport === 'function' && typeof localReportFromPayload === 'function'){
         const local = localReportFromPayload(payload);
-        local.summary = (local.summary || '') + ' AirTrueIQ API failed: ' + msg;
+        local.summary = (local.summary || '') + ' Online AI report unavailable: ' + msg + ' Showing local fallback.';
         renderWellnessReport(local, payload, 'local');
       }
     }catch(localErr){
-      if(out) out.innerHTML += '<br>Local fallback also failed: ' + (localErr.message || localErr);
+      if(out) out.innerHTML += '<br>Local fallback also failed: ' + esc(localErr.message || localErr);
     }
   }
 }
@@ -3244,6 +3312,107 @@ function updatePpdDisplay(){
 })();
 
 
+</script>
+
+
+
+<script>
+/* V82R15_LICENSE_GATE_JS */
+(function(){
+  const LICENSE_ENDPOINT = 'https://www.airtrueiq.com/api/license-verify';
+  const LS_KEY = 'airawareLicenseKey';
+  const LS_STATUS = 'airawareLicenseStatus';
+  const LS_DEVICE = 'airawareDeviceId';
+  const LS_LAST = 'airawareLicenseLastVerifiedAt';
+
+  function makeDeviceId(){
+    try{
+      if(crypto && crypto.randomUUID) return 'AA-' + crypto.randomUUID();
+    }catch(e){}
+    return 'AA-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,12);
+  }
+  function getDeviceId(){
+    let id = localStorage.getItem(LS_DEVICE);
+    if(!id){ id = makeDeviceId(); localStorage.setItem(LS_DEVICE,id); }
+    return id;
+  }
+  function gate(){ return document.getElementById('licenseGateBack'); }
+  function statusBox(){ return document.getElementById('licenseStatusBox'); }
+  function metaBox(){ return document.getElementById('licenseMetaBox'); }
+  function setStatus(msg, cls){
+    const el=statusBox(); if(!el) return;
+    el.className='licenseStatus' + (cls ? ' '+cls : '');
+    el.textContent=msg;
+  }
+  function setMeta(msg){ const el=metaBox(); if(el) el.textContent=msg; }
+  function showGate(){ const g=gate(); if(g) g.classList.add('active'); }
+  function hideGate(){ const g=gate(); if(g) g.classList.remove('active'); }
+  function isVerified(){ return localStorage.getItem(LS_STATUS)==='active' && !!localStorage.getItem(LS_KEY); }
+
+  window.airawareLicenseInfo = function(){
+    return {
+      licenseKey: localStorage.getItem(LS_KEY)||'',
+      status: localStorage.getItem(LS_STATUS)||'unverified',
+      deviceId: getDeviceId(),
+      lastVerifiedAt: localStorage.getItem(LS_LAST)||''
+    };
+  };
+
+  window.verifyAirAwareLicense = async function(){
+    const input=document.getElementById('licenseKeyInput');
+    const licenseKey=String(input?.value || localStorage.getItem(LS_KEY) || '').trim().toUpperCase();
+    if(!licenseKey){ setStatus('Enter a license key first.','bad'); return; }
+    const deviceId=getDeviceId();
+    setStatus('Checking license with AirTrueIQ...', '');
+    setMeta('Device ID: '+deviceId);
+    try{
+      const r=await fetch(LICENSE_ENDPOINT,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({licenseKey, deviceId, appVersion:'v82r15'})
+      });
+      const data=await r.json().catch(()=>({}));
+      if(r.ok && data.ok && data.valid){
+        localStorage.setItem(LS_KEY, licenseKey);
+        localStorage.setItem(LS_STATUS, 'active');
+        localStorage.setItem(LS_LAST, new Date().toISOString());
+        setStatus('License verified: '+(data.status || 'active')+'. App unlocked.','good');
+        setMeta('Plan: '+(data.license?.plan||'basic')+' • Device limit: '+(data.license?.deviceLimit||1)+' • Activation count: '+(data.license?.activationCount||1));
+        setTimeout(hideGate,700);
+      }else{
+        let reason=data.error || data.reason || ('HTTP '+r.status);
+        if(String(reason).toLowerCase().includes('device')) reason='Device limit reached for this license.';
+        localStorage.setItem(LS_STATUS, 'blocked');
+        setStatus('License not verified: '+reason,'bad');
+      }
+    }catch(e){
+      setStatus('License check failed: '+(e.message||e),'bad');
+    }
+  };
+
+  window.retrySavedAirAwareLicense = function(){
+    const saved=localStorage.getItem(LS_KEY)||'';
+    const input=document.getElementById('licenseKeyInput');
+    if(input) input.value=saved;
+    if(saved) window.verifyAirAwareLicense(); else setStatus('No saved license key found.','bad');
+  };
+
+  window.clearAirAwareLicenseForSupport = function(){
+    localStorage.removeItem(LS_KEY);
+    localStorage.removeItem(LS_STATUS);
+    localStorage.removeItem(LS_LAST);
+    setStatus('Saved license cleared on this device. Enter license key again.','');
+    showGate();
+  };
+
+  window.addEventListener('DOMContentLoaded',()=>{
+    const input=document.getElementById('licenseKeyInput');
+    const saved=localStorage.getItem(LS_KEY)||'';
+    if(input) input.value=saved;
+    setMeta('Device ID: '+getDeviceId());
+    if(!isVerified()) showGate();
+  });
+})();
 </script>
 
 </body>

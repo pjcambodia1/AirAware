@@ -228,3 +228,5 @@ jobs:
         with:
           name: AirAware-release-apk
           path: android/app/build/outputs/apk/release/app-release.apk
+
+          

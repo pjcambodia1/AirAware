@@ -12,7 +12,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -33,11 +32,8 @@ jobs:
       - name: Add Android platform if missing
         run: |
           if [ ! -f "android/gradlew" ]; then
-            echo "Android platform missing. Creating..."
             rm -rf android
             npx cap add android
-          else
-            echo "Android platform already exists."
           fi
 
       - name: Sync Capacitor Android
@@ -46,19 +42,22 @@ jobs:
       - name: Restore AndroidManifest permissions
         run: |
           mkdir -p android/app/src/main
-
           cat > android/app/src/main/AndroidManifest.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-
               <uses-permission android:name="android.permission.INTERNET" />
               <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
               <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
               <uses-permission android:name="android.permission.CAMERA" />
 
+              <uses-feature android:name="android.hardware.camera" android:required="false" />
+              <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+              <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+
               <application
                   android:allowBackup="true"
                   android:icon="@mipmap/ic_launcher"
+                  android:roundIcon="@mipmap/ic_launcher_round"
                   android:label="AirAware"
                   android:supportsRtl="true"
                   android:theme="@style/AppTheme"
@@ -67,24 +66,22 @@ jobs:
                   <activity
                       android:name=".MainActivity"
                       android:exported="true"
-                      android:launchMode="singleTask">
-
+                      android:label="AirAware"
+                      android:theme="@style/AppTheme.NoActionBarLaunch"
+                      android:launchMode="singleTask"
+                      android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
                           <category android:name="android.intent.category.LAUNCHER" />
                       </intent-filter>
-
                   </activity>
-
               </application>
-
           </manifest>
           EOF
 
       - name: Restore MainActivity
         run: |
           mkdir -p android/app/src/main/java/com/airaware/app
-
           cat > android/app/src/main/java/com/airaware/app/MainActivity.java <<'EOF'
           package com.airaware.app;
 
@@ -96,12 +93,61 @@ jobs:
       - name: Restore Android resources
         run: |
           mkdir -p android/app/src/main/res/values
+          mkdir -p android/app/src/main/res/xml
 
           cat > android/app/src/main/res/values/strings.xml <<'EOF'
           <resources>
               <string name="app_name">AirAware</string>
+              <string name="title_activity_main">AirAware</string>
+              <string name="package_name">com.airaware.app</string>
+              <string name="custom_url_scheme">com.airaware.app</string>
           </resources>
           EOF
+
+          cat > android/app/src/main/res/xml/file_paths.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <paths xmlns:android="http://schemas.android.com/apk/res/android">
+              <external-path name="external_files" path="." />
+          </paths>
+          EOF
+
+      - name: Force install AirAware launcher icon
+        run: |
+          if [ ! -f "www/airaware-icon.png" ]; then
+            echo "ERROR: www/airaware-icon.png not found"
+            exit 1
+          fi
+
+          rm -rf android/app/src/main/res/mipmap-anydpi-v26
+
+          mkdir -p android/app/src/main/res/mipmap-mdpi
+          mkdir -p android/app/src/main/res/mipmap-hdpi
+          mkdir -p android/app/src/main/res/mipmap-xhdpi
+          mkdir -p android/app/src/main/res/mipmap-xxhdpi
+          mkdir -p android/app/src/main/res/mipmap-xxxhdpi
+
+          cp www/airaware-icon.png android/app/src/main/res/mipmap-mdpi/ic_launcher.png
+          cp www/airaware-icon.png android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png
+          cp www/airaware-icon.png android/app/src/main/res/mipmap-hdpi/ic_launcher.png
+          cp www/airaware-icon.png android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png
+          cp www/airaware-icon.png android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
+          cp www/airaware-icon.png android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png
+          cp www/airaware-icon.png android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+          cp www/airaware-icon.png android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png
+          cp www/airaware-icon.png android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+          cp www/airaware-icon.png android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png
+
+      - name: Verify permissions and icon
+        run: |
+          grep -n "ACCESS_FINE_LOCATION" android/app/src/main/AndroidManifest.xml
+          grep -n "ACCESS_COARSE_LOCATION" android/app/src/main/AndroidManifest.xml
+          grep -n "CAMERA" android/app/src/main/AndroidManifest.xml
+          grep -n "INTERNET" android/app/src/main/AndroidManifest.xml
+          ls -lh android/app/src/main/res/mipmap-mdpi/ic_launcher.png
+          ls -lh android/app/src/main/res/mipmap-hdpi/ic_launcher.png
+          ls -lh android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
+          ls -lh android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+          ls -lh android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
 
       - name: Decode Android keystore
         run: |
@@ -134,11 +180,7 @@ jobs:
           ALIGNED_APK="android/app/build/outputs/apk/release/app-release-aligned.apk"
           SIGNED_APK="android/app/build/outputs/apk/release/AirAware-release-signed.apk"
 
-          if [ ! -f "$UNSIGNED_APK" ]; then
-            echo "ERROR: unsigned APK not found"
-            ls -lh android/app/build/outputs/apk/release/
-            exit 1
-          fi
+          test -f "$UNSIGNED_APK"
 
           "$BUILD_TOOLS/zipalign" -p -f 4 "$UNSIGNED_APK" "$ALIGNED_APK"
 

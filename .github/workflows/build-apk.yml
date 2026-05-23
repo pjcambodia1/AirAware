@@ -1,24 +1,21 @@
 name: Build APK
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
 
+  workflow_dispatch:
+
 jobs:
   build:
-    name: Build AirAware Signed APK
+
     runs-on: ubuntu-latest
 
     steps:
+
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Setup Node 22
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
 
       - name: Setup Java 21
         uses: actions/setup-java@v4
@@ -26,158 +23,38 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - name: Install npm dependencies
-        run: npm install
-
-      - name: Add Android platform if missing or incomplete
-        run: |
-          if [ ! -f "android/gradlew" ]; then
-            echo "Android project missing gradlew. Recreating android platform..."
-            rm -rf android
-            npx cap add android
-          else
-            echo "Android platform already exists."
-          fi
-
-      - name: Sync Capacitor
-        run: npx cap sync android
-
-      - name: Restore required AndroidManifest permissions
-        run: |
-          mkdir -p android/app/src/main
-          cat > android/app/src/main/AndroidManifest.xml <<'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-
-              <uses-permission android:name="android.permission.INTERNET" />
-              <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-              <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-              <uses-permission android:name="android.permission.CAMERA" />
-
-              <uses-feature android:name="android.hardware.camera" android:required="false" />
-              <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
-              <uses-feature android:name="android.hardware.location.gps" android:required="false" />
-
-              <application
-                  android:allowBackup="true"
-                  android:icon="@mipmap/ic_launcher"
-                  android:label="AirAware"
-                  android:roundIcon="@mipmap/ic_launcher_round"
-                  android:supportsRtl="true"
-                  android:theme="@style/AppTheme"
-                  android:usesCleartextTraffic="true">
-
-                  <activity
-                      android:name=".MainActivity"
-                      android:exported="true"
-                      android:label="AirAware"
-                      android:theme="@style/AppTheme.NoActionBarLaunch"
-                      android:launchMode="singleTask"
-                      android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation">
-
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
-                      </intent-filter>
-
-                  </activity>
-
-                  <provider
-                      android:name="androidx.core.content.FileProvider"
-                      android:authorities="${applicationId}.fileprovider"
-                      android:exported="false"
-                      android:grantUriPermissions="true">
-                      <meta-data
-                          android:name="android.support.FILE_PROVIDER_PATHS"
-                          android:resource="@xml/file_paths" />
-                  </provider>
-
-              </application>
-          </manifest>
-          EOF
-
-      - name: Restore MainActivity
-        run: |
-          mkdir -p android/app/src/main/java/com/airaware/app
-          cat > android/app/src/main/java/com/airaware/app/MainActivity.java <<'EOF'
-          package com.airaware.app;
-
-          import com.getcapacitor.BridgeActivity;
-
-          public class MainActivity extends BridgeActivity {}
-          EOF
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
       - name: Restore Android resource files
         run: |
-          mkdir -p android/app/src/main/res/values
-          mkdir -p android/app/src/main/res/xml
-
-          cat > android/app/src/main/res/values/strings.xml <<'EOF'
-          <resources>
-              <string name="app_name">AirAware</string>
-              <string name="title_activity_main">AirAware</string>
-              <string name="package_name">com.airaware.app</string>
-              <string name="custom_url_scheme">com.airaware.app</string>
-          </resources>
-          EOF
-
-          cat > android/app/src/main/res/xml/file_paths.xml <<'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <paths xmlns:android="http://schemas.android.com/apk/res/android">
-              <external-path name="external_files" path="." />
-          </paths>
-          EOF
-
-      - name: Install AirAware app icon
-        run: |
-          if [ ! -f "www/airaware-icon.png" ]; then
-            echo "ERROR: www/airaware-icon.png not found"
-            exit 1
-          fi
-
-          rm -rf android/app/src/main/res/mipmap-anydpi-v26
-
           mkdir -p android/app/src/main/res/mipmap-mdpi
           mkdir -p android/app/src/main/res/mipmap-hdpi
           mkdir -p android/app/src/main/res/mipmap-xhdpi
           mkdir -p android/app/src/main/res/mipmap-xxhdpi
           mkdir -p android/app/src/main/res/mipmap-xxxhdpi
 
-          cp www/airaware-icon.png android/app/src/main/res/mipmap-mdpi/ic_launcher.png
-          cp www/airaware-icon.png android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png
-          cp www/airaware-icon.png android/app/src/main/res/mipmap-hdpi/ic_launcher.png
-          cp www/airaware-icon.png android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png
-          cp www/airaware-icon.png android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
-          cp www/airaware-icon.png android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png
-          cp www/airaware-icon.png android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
-          cp www/airaware-icon.png android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png
-          cp www/airaware-icon.png android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
-          cp www/airaware-icon.png android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png
-
       - name: Verify Android permissions and icon
         run: |
-          grep -n "ACCESS_FINE_LOCATION" android/app/src/main/AndroidManifest.xml
-          grep -n "ACCESS_COARSE_LOCATION" android/app/src/main/AndroidManifest.xml
           grep -n "CAMERA" android/app/src/main/AndroidManifest.xml
+          grep -n "ACCESS_FINE_LOCATION" android/app/src/main/AndroidManifest.xml
           grep -n "INTERNET" android/app/src/main/AndroidManifest.xml
-          ls -lh android/app/src/main/res/mipmap-mdpi/ic_launcher.png
-          ls -lh android/app/src/main/res/mipmap-hdpi/ic_launcher.png
-          ls -lh android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
-          ls -lh android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
-          ls -lh android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
 
       - name: Decode Android keystore
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/airaware-release.keystore
 
-      - name: Configure release signing
+      - name: Export signing environment variables
         run: |
-          cat > android/keystore.properties <<EOF
-          storeFile=airaware-release.keystore
-          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
-          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
-          EOF
+          echo "KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+          echo "KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}" >> $GITHUB_ENV
+          echo "KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> $GITHUB_ENV
+
+      - name: Verify keystore exists
+        run: |
+          ls -lh android/app/airaware-release.keystore
 
       - name: Make Gradle executable
         run: chmod +x android/gradlew
@@ -186,6 +63,10 @@ jobs:
         run: |
           cd android
           ./gradlew assembleRelease
+
+      - name: Verify APK output
+        run: |
+          ls -lh android/app/build/outputs/apk/release/
 
       - name: Upload signed APK artifact
         uses: actions/upload-artifact@v4

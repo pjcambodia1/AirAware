@@ -2,23 +2,26 @@ apply plugin: 'com.android.application'
 
 android {
     namespace "com.airaware.app"
-
-    compileSdkVersion 34
+    compileSdkVersion 35
 
     defaultConfig {
         applicationId "com.airaware.app"
         minSdkVersion 24
-        targetSdkVersion 34
+        targetSdkVersion 35
         versionCode 1
         versionName "1.0"
     }
 
     signingConfigs {
         release {
-            storeFile file(System.getenv("KEYSTORE_FILE"))
+            storeFile file("airaware-release.keystore")
             storePassword System.getenv("KEYSTORE_PASSWORD")
             keyAlias System.getenv("KEY_ALIAS")
             keyPassword System.getenv("KEY_PASSWORD")
+
+            if (!storeFile.exists()) {
+                throw new GradleException("Release keystore missing")
+            }
         }
     }
 
@@ -30,6 +33,7 @@ android {
         release {
             signingConfig signingConfigs.release
             minifyEnabled false
+            shrinkResources false
         }
     }
 }

@@ -179,42 +179,6 @@ jobs:
           keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
           EOF
 
-          python3 <<'PY'
-          from pathlib import Path
-          p = Path("android/app/build.gradle")
-          s = p.read_text()
-
-          if "keystore.properties" not in s:
-              s = "def keystorePropertiesFile = rootProject.file('keystore.properties')\n" \
-                  "def keystoreProperties = new Properties()\n" \
-                  "if (keystorePropertiesFile.exists()) {\n" \
-                  "    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))\n" \
-                  "}\n\n" + s
-
-          if "signingConfigs" not in s:
-              s = s.replace(
-                  "android {",
-                  """android {
-              signingConfigs {
-                  release {
-                      storeFile file(keystoreProperties['storeFile'])
-                      storePassword keystoreProperties['storePassword']
-                      keyAlias keystoreProperties['keyAlias']
-                      keyPassword keystoreProperties['keyPassword']
-                  }
-              }"""
-              )
-
-          if "signingConfig signingConfigs.release" not in s:
-              s = s.replace(
-                  "release {",
-                  """release {
-                      signingConfig signingConfigs.release"""
-              )
-
-          p.write_text(s)
-          PY
-
       - name: Make Gradle executable
         run: chmod +x android/gradlew
 
@@ -228,5 +192,3 @@ jobs:
         with:
           name: AirAware-release-apk
           path: android/app/build/outputs/apk/release/app-release.apk
-
-          

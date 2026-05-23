@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Build AirAware APK
+    name: Build AirAware Signed APK
     runs-on: ubuntu-latest
 
     steps:
@@ -145,44 +145,86 @@ jobs:
 
           cp www/airaware-icon.png android/app/src/main/res/mipmap-mdpi/ic_launcher.png
           cp www/airaware-icon.png android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png
-
           cp www/airaware-icon.png android/app/src/main/res/mipmap-hdpi/ic_launcher.png
           cp www/airaware-icon.png android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png
-
           cp www/airaware-icon.png android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
           cp www/airaware-icon.png android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png
-
           cp www/airaware-icon.png android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
           cp www/airaware-icon.png android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png
-
           cp www/airaware-icon.png android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
           cp www/airaware-icon.png android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png
 
       - name: Verify Android permissions and icon
         run: |
-          echo "Checking AndroidManifest permissions..."
           grep -n "ACCESS_FINE_LOCATION" android/app/src/main/AndroidManifest.xml
           grep -n "ACCESS_COARSE_LOCATION" android/app/src/main/AndroidManifest.xml
           grep -n "CAMERA" android/app/src/main/AndroidManifest.xml
           grep -n "INTERNET" android/app/src/main/AndroidManifest.xml
-
-          echo "Checking app icon..."
           ls -lh android/app/src/main/res/mipmap-mdpi/ic_launcher.png
           ls -lh android/app/src/main/res/mipmap-hdpi/ic_launcher.png
           ls -lh android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
           ls -lh android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
           ls -lh android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
 
+      - name: Decode Android keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/airaware-release.keystore
+
+      - name: Configure release signing
+        run: |
+          cat > android/keystore.properties <<EOF
+          storeFile=airaware-release.keystore
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          EOF
+
+          python3 <<'PY'
+          from pathlib import Path
+          p = Path("android/app/build.gradle")
+          s = p.read_text()
+
+          if "keystore.properties" not in s:
+              s = "def keystorePropertiesFile = rootProject.file('keystore.properties')\n" \
+                  "def keystoreProperties = new Properties()\n" \
+                  "if (keystorePropertiesFile.exists()) {\n" \
+                  "    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))\n" \
+                  "}\n\n" + s
+
+          if "signingConfigs" not in s:
+              s = s.replace(
+                  "android {",
+                  """android {
+              signingConfigs {
+                  release {
+                      storeFile file(keystoreProperties['storeFile'])
+                      storePassword keystoreProperties['storePassword']
+                      keyAlias keystoreProperties['keyAlias']
+                      keyPassword keystoreProperties['keyPassword']
+                  }
+              }"""
+              )
+
+          if "signingConfig signingConfigs.release" not in s:
+              s = s.replace(
+                  "release {",
+                  """release {
+                      signingConfig signingConfigs.release"""
+              )
+
+          p.write_text(s)
+          PY
+
       - name: Make Gradle executable
         run: chmod +x android/gradlew
 
-      - name: Build debug APK
+      - name: Build signed release APK
         run: |
           cd android
-          ./gradlew assembleDebug
+          ./gradlew assembleRelease
 
-      - name: Upload APK artifact
+      - name: Upload signed APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AirAware-v82r6-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: AirAware-release-apk
+          path: android/app/build/outputs/apk/release/app-release.apk

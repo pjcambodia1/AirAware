@@ -23,3 +23,4 @@ Adds Android/WebView top safe spacing so the title no longer sits under the phon
 - Workflow includes a manifest permission verification step before APK build.
 ## v82r15
 -This v82r15 package adds stronger Android permission handling:
+

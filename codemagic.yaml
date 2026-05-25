@@ -1,0 +1,17 @@
+workflows:
+  airaware-android:
+    name: AirAware Android Build
+
+    environment:
+      node: 22
+
+    scripts:
+      - npm install
+      - npm install @capacitor/core @capacitor/cli @capacitor/android
+      - npm run build || true
+      - npx cap sync android
+      - cd android
+      - ./gradlew assembleDebug
+
+    artifacts:
+      - android/app/build/outputs/**/*.apk

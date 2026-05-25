@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>AirAware v82r14</title>
+<title>AirAware v82r15</title>
 <style>
   body{margin:0;background:radial-gradient(circle at top,#ffffff 0,#eef6ff 38%,#e8edf5 100%);font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;color:#0f172a}
   .app{max-width:480px;margin:auto;padding:16px}
@@ -289,7 +289,7 @@ body{padding-top:calc(var(--apkSafeTop) + env(safe-area-inset-top, 0px));box-siz
 
 <div id="pullRefreshHint" class="pullRefreshHint">Pull to refresh live air data</div>
 <div class="app">
-  <h1>AirAware <span style="font-size:15px;color:#2563eb;vertical-align:middle">v82r14</span></h1>
+  <h1>AirAware <span style="font-size:15px;color:#2563eb;vertical-align:middle">v82r15</span></h1>
   <div class="muted" id="locationLine">No live data loaded</div>
   <button class="light" onclick="openGuideLegend()">Guide / Legend / Terms</button>
 
@@ -1461,7 +1461,7 @@ function buildAirAwarePayload(){
   const bp=bpLoadFactor();
   const pulseTxt=document.getElementById('pulseVal')?.innerText||'';
   const payload={
-    appVersion:'v48-subscription-preview-trigger-test',
+    appVersion:'v82r15',
     ageGroup: document.getElementById('ageGroup')?.value || 'adult',
     bpProfile: classifiedBpProfile(),
     systolic: parseInt(document.getElementById('sigSys')?.value || 0) || null,
@@ -1502,7 +1502,7 @@ function buildAirAwarePayload(){
     payload.transitionPattern = transition;
     if(payload.transitionPattern && flip) payload.transitionPattern.flipFlop = flip;
     payload.aiSummary = {
-      appVersion:'v82r14',
+      appVersion:'v82r15',
       location: {
         city: plainText(document.getElementById('scoreCity')?.innerHTML)||'',
         country: plainText(document.getElementById('scoreCountry')?.innerHTML)||'',
@@ -1537,6 +1537,8 @@ function buildAirAwarePayload(){
       transitionSeverity: transition?.level || 'None',
       ppdStatus: transition?.status || 'None',
       ppdSummary: transition?.summary || '',
+      ppdDirectionalLabel: transition?.type || transition?.status || 'None',
+      ppdDirectionalMeaning: transition?.type==='PPD-Recovery Watch' ? 'Post-peak recovery divergence: density continued rising while PLD burden eased after peak.' : (transition?.type==='PPD-Rise Watch' || transition?.type==='PPD-Rise Active' ? 'Load-building divergence: density rising while PLD burden deepened.' : ''),
       compoundTrendSource: transition?.source || 'visible timestamped 6-hour DA/PLD compound trend',
       densityNormDelta: transition?.densityNormSlope ?? null,
       pldDelta: transition?.pldSlope ?? null,
@@ -1586,6 +1588,12 @@ function localReportFromPayload(p){
     : `Low-BP sensitivity is ${p.lowBpRisk||'unknown'} from the app and appears secondary unless you personally feel weak or lightheaded.`;
 
   const bodyNote = `Sensitivity is ${p.sensitivity}/10 with BP profile ${bpLabel}${p.pulseBpm?`, pulse ${p.pulseBpm} bpm`:''}. Body-map percentages show where this app is distributing the current load.`;
+  const tp = p.transitionPattern || {};
+  const ppdNote = tp.type==='PPD-Recovery Watch'
+    ? `The strongest visible PLD burden occurred near ${tp.rows?.find?.(x=>x.pld===tp.visiblePldBurdenPeak)?.time || 'the visible peak'}. Since then, air density continued rising, but PLD burden eased from about ${tp.visiblePldBurdenPeak} m DA to ${tp.currentPLD} m DA. This suggests post-peak recovery divergence rather than a new intensifying PLD event.`
+    : (tp.summary || 'No active directional PPD transition detected.');
+  const compoundTrendNote = tp.source ? `${tp.source}; ΔDensityNorm ${tp.densityNormSlope ?? '—'}, ΔPLD ${tp.pldSlope ?? '—'}, ΔCompoundGap ${tp.compoundGapChange ?? '—'}.` : 'Not specified.';
+  const airPattern = tp.status || 'Not specified.';
 
   let suggestions=[];
   if(p.locationType==='destination' && (p.actualElevationM||0)>=1100) suggestions.push('For a high-elevation destination, pace arrival and allow acclimation time.');
@@ -1595,7 +1603,7 @@ function localReportFromPayload(p){
   suggestions.push('Hydrate normally and avoid abrupt exertion while conditions are changing.');
   suggestions.push('Regenerate the report if weather, BP, pulse, or symptoms change.');
 
-  return {headline, summary, highBpNote:highNote, lowBpNote:lowNote, bodySignalNote:bodyNote, suggestions:suggestions.slice(0,5), confidence:`${p.confidencePct}% app data completeness; ${p.freshness} weather data`, patternInsights:p.patternInsights, disclaimer:'Wellness guidance only. Not medical advice or diagnosis.'};
+  return {headline, summary, airPattern, compoundTrendNote, ppdNote, highBpNote:highNote, lowBpNote:lowNote, bodySignalNote:bodyNote, suggestions:suggestions.slice(0,5), confidence:`${p.confidencePct}% app data completeness; ${p.freshness} weather data`, patternInsights:p.patternInsights, disclaimer:'Wellness guidance only. Not medical advice or diagnosis.'};
 }
 let currentWellnessReportRecord=null;
 function saveLastReport(r, payload, mode){
@@ -1726,7 +1734,7 @@ async function generateWellnessReport(force=false){
     } else {
       payload = {
         source: 'AirAware APK',
-        version: 'v82r14',
+        version: 'v82r15',
         locationLine: document.getElementById('locationLine')?.innerText || '',
         score: document.getElementById('score')?.innerText || '',
         city: document.getElementById('scoreCity')?.innerText || '',
@@ -1741,7 +1749,7 @@ async function generateWellnessReport(force=false){
       };
     }
   }catch(e){
-    payload = { source:'AirAware APK', version:'v82r14', payloadError:String(e.message||e) };
+    payload = { source:'AirAware APK', version:'v82r15', payloadError:String(e.message||e) };
   }
 
   payload.endpointTest = endpoint;
@@ -2958,7 +2966,7 @@ async function airawarePullRefreshNow(){
 
 
 
-/* V82R10_PPD_STATE_MACHINE_JS */
+/* V82R15_DIRECTIONAL_PPD_STATE_MACHINE_JS */
 function safeNumFromText(txt){
   if(txt===null || txt===undefined) return null;
   const m=String(txt).replace(/[,+]/g,'').match(/-?\d+(\.\d+)?/);
@@ -2987,13 +2995,15 @@ function collectPldTrendRows(){
 }
 
 /*
-  v82r12 PPD rules:
+  v82r15 directional PPD rules:
   - Uses only visible timestamped trend table points.
   - No stale localStorage peak.
   - Pre-trigger = convergence or near-convergence.
   - Revalidate every new data update / rolling scan.
   - Pre-trigger expires after ~60 minutes if no divergence.
-  - PPD active only after sharp opposite-slope divergence opens the gap by ~4-5 m DA.
+  - PPD-Rise means density rising while PLD burden deepens/worsens.
+  - PPD-Recovery means density keeps rising while PLD burden eases after the visible peak.
+  - Do not label every widening visual gap as worsening; burden direction controls interpretation.
 */
 function getPpdState(){
   try{
@@ -3024,7 +3034,7 @@ function pushTransitionHistory(type, status, level){
 function detectFlipFlopTransition(){
   const h=getTransitionHistory().filter(x =>
     x && x.status==='Active' &&
-    (x.type==='Post-Peak Divergence' || x.type==='Inverse Post-Peak Divergence')
+    (x.type==='Post-Peak Divergence' || x.type==='PPD-Rise Active' || x.type==='Inverse Post-Peak Divergence')
   );
   if(h.length<2) return {active:false};
   const last=h[h.length-1];
@@ -3087,8 +3097,19 @@ function detectPostPeakDivergence(){
   const priorGapChange=gapPrev-gapPrior;
 
   const visiblePlds=enriched.map(r=>r.pld);
-  const dropFromVisiblePeak=Math.max(...visiblePlds)-c.pld;
-  const reboundFromVisibleLow=c.pld-Math.min(...visiblePlds);
+  const visiblePldMin=Math.min(...visiblePlds); // deepest negative PLD burden in the visible window
+  const visiblePldMax=Math.max(...visiblePlds);
+  const visiblePldMinIndex=visiblePlds.indexOf(visiblePldMin);
+  const burdenPeakWasEarlier=visiblePldMinIndex>=0 && visiblePldMinIndex<visiblePlds.length-1;
+  const recoveryFromBurdenPeak=c.pld-visiblePldMin; // e.g. -49 -> -4 = +45 m recovery
+  const deepeningFromVisibleHigh=visiblePldMax-c.pld; // e.g. -22 -> -49 = +27 m load build
+  const dropFromVisiblePeak=deepeningFromVisibleHigh;
+  const reboundFromVisibleLow=recoveryFromBurdenPeak;
+  const densityRising=densitySlope>0 || densityNormSlope>0;
+  const densityFalling=densitySlope<0 || densityNormSlope<0;
+  const pldBurdenDeepening=pldSlope<=-4;
+  const pldBurdenEasing=pldSlope>=4;
+  const postPeakRecovery=densityRising && pldBurdenEasing && burdenPeakWasEarlier && recoveryFromBurdenPeak>=4;
 
   const nearConvergence=gapPrev<=15 || priorGapChange<0;
   const sameDirection=(densityNormSlope>0&&pldNormSlope>0)||(densityNormSlope<0&&pldNormSlope<0);
@@ -3098,7 +3119,7 @@ function detectPostPeakDivergence(){
   const gapOpenedFast=Number.isFinite(gapChange) && gapChange>=18;
   const gapOpenedLimited=Number.isFinite(gapChange) && gapChange>0 && gapChange<18;
 
-  let result={active:false,type:'None',status:'None',level:'None',currentTime:c.time,previousTime:b.time,priorTime:a.time,currentDensity:c.density,currentPLD:c.pld,previousDensity:b.density,previousPLD:b.pld,densitySlope:+densitySlope.toFixed(3),pldSlope:+pldSlope.toFixed(1),densityNormSlope:+densityNormSlope.toFixed(1),pldNormSlope:+pldNormSlope.toFixed(1),compoundGapPrior:+gapPrior.toFixed(1),compoundGapPrev:+gapPrev.toFixed(1),compoundGapCurrent:+gapCurrent.toFixed(1),compoundGapChange:+gapChange.toFixed(1),priorGapChange:+priorGapChange.toFixed(1),dropFromVisiblePeak:+dropFromVisiblePeak.toFixed(1),reboundFromVisibleLow:+reboundFromVisibleLow.toFixed(1),nearConvergence,parallelTracking,rows:enriched,source:'visible timestamped 6-hour DA/PLD compound trend'};
+  let result={active:false,type:'None',status:'None',level:'None',currentTime:c.time,previousTime:b.time,priorTime:a.time,currentDensity:c.density,currentPLD:c.pld,previousDensity:b.density,previousPLD:b.pld,densitySlope:+densitySlope.toFixed(3),pldSlope:+pldSlope.toFixed(1),densityNormSlope:+densityNormSlope.toFixed(1),pldNormSlope:+pldNormSlope.toFixed(1),compoundGapPrior:+gapPrior.toFixed(1),compoundGapPrev:+gapPrev.toFixed(1),compoundGapCurrent:+gapCurrent.toFixed(1),compoundGapChange:+gapChange.toFixed(1),priorGapChange:+priorGapChange.toFixed(1),dropFromVisiblePeak:+dropFromVisiblePeak.toFixed(1),reboundFromVisibleLow:+reboundFromVisibleLow.toFixed(1),visiblePldBurdenPeak:+visiblePldMin.toFixed(1),recoveryFromBurdenPeak:+recoveryFromBurdenPeak.toFixed(1),deepeningFromVisibleHigh:+deepeningFromVisibleHigh.toFixed(1),burdenPeakWasEarlier,postPeakRecovery,nearConvergence,parallelTracking,rows:enriched,source:'visible timestamped 6-hour DA/PLD compound trend'};
 
   if(nearConvergence && !state.preTriggerAt && !state.active){
     setPpdState({preTriggerAt:nowIso,preTriggerTime:b.time,preGap:+gapPrev.toFixed(1),active:false});
@@ -3120,33 +3141,48 @@ function detectPostPeakDivergence(){
 
   const hasRecentPreTrigger=!!state.preTriggerAt || nearConvergence || priorGapChange<0;
 
+  if(hasRecentPreTrigger && postPeakRecovery){
+    const level=classifyPpdLevel(recoveryFromBurdenPeak,pldSlope);
+    setPpdState({preTriggerAt:state.preTriggerAt||nowIso,preTriggerTime:b.time,preGap:+gapPrev.toFixed(1),active:false,lastRecoveryAt:nowIso,type:'PPD-Recovery Watch',level});
+    result.active=true;
+    result.type='PPD-Recovery Watch';
+    result.status='Recovery Watch';
+    result.level=level==='None'?'Notice':level;
+    result.directionFeel='Post-peak recovery divergence';
+    result.shortHi='Recovery: density still rising';
+    result.shortLo='PLD burden easing';
+    result.summary='Post-peak recovery divergence: air density continued rising while PLD burden eased after the visible PLD peak. This is a recovery/relief divergence, not a new intensifying PLD event.';
+    result.profileNote='A lingering headache or body signal may still fit the earlier load-building window, even though the latest PLD trend is easing.';
+    return result;
+  }
+
   if(hasRecentPreTrigger && ppdOpposite && gapOpenedLimited && dropFromVisiblePeak>=4){
     setPpdState({preTriggerAt:state.preTriggerAt||nowIso,preTriggerTime:b.time,preGap:+gapPrev.toFixed(1),active:false,lastWatchAt:nowIso});
     result.active=true;
-    result.type='PPD Watch';
-    result.status='Watch';
+    result.type='PPD-Rise Watch';
+    result.status='Rise Watch';
     result.level='Limited';
-    result.directionFeel='Limited descending-gap transition';
-    result.shortHi='Density-rise watch';
-    result.shortLo='Limited descending-gap watch';
-    result.summary='PPD Watch — limited post-convergence widening. Air-density trend is rising while PLD is falling after near-convergence, but the compound gap has not widened enough for full PPD Active.';
+    result.directionFeel='Load-building divergence';
+    result.shortHi='Density rising';
+    result.shortLo='PLD burden deepening';
+    result.summary='PPD-Rise Watch — air density is rising while PLD burden is deepening after near-convergence. This is the load-building direction and should be treated differently from recovery divergence.';
     result.profileNote='Sensitivity warning preserved: lower-BP, narrow-pulse-pressure, or reactive patterns may still notice this watch window.';
     return result;
   }
 
   if(hasRecentPreTrigger && ppdOpposite && gapOpenedFast && dropFromVisiblePeak>=4){
     const level=classifyPpdLevel(gapChange,pldSlope);
-    setPpdState({active:true,activeAt:nowIso,type:'Post-Peak Divergence',level,lastConfirmedAt:nowIso});
-    pushTransitionHistory('Post-Peak Divergence','Active',level);
+    setPpdState({active:true,activeAt:nowIso,type:'PPD-Rise Active',level,lastConfirmedAt:nowIso});
+    pushTransitionHistory('PPD-Rise Active','Active',level);
     result.active=true;
-    result.type='Post-Peak Divergence';
+    result.type='PPD-Rise Active';
     result.status='Active';
     result.level=level;
-    result.directionFeel='Descending-gap transition';
-    result.shortHi='Density-rise watch';
-    result.shortLo='Descending-gap watch';
-    result.summary='Post-Peak Divergence active. The DA/PLD compound gap widened after near-convergence while air-density trend rose and PLD fell '+Math.abs(result.pldSlope)+' m DA from the previous point.';
-    result.profileNote='Sensitive, lower-BP, or narrow-pulse-pressure patterns may notice this descending-gap transition window.';
+    result.directionFeel='Load-building divergence';
+    result.shortHi='Density rising';
+    result.shortLo='PLD burden deepening';
+    result.summary='PPD-Rise active. Air density is rising while PLD burden deepened '+Math.abs(result.pldSlope)+' m DA from the previous point. This is an intensifying/load-building divergence, not a recovery phase.';
+    result.profileNote='Sensitive, lower-BP, narrow-pulse-pressure, headache, or fatigue patterns may notice this load-building transition window.';
     return result;
   }
 
@@ -3229,7 +3265,7 @@ function updatePpdDisplay(){
 
   const gaugeNote=document.getElementById('pldGaugeNote');
   if(gaugeNote && (ppd.active || ppd.status==='Convergence Watch' || ppd.status==='Easing' || ppd.status==='Cleared')){
-    const tag = ppd.type==='Post-Peak Divergence' ? 'PPD' : ppd.type==='Inverse Post-Peak Divergence' ? 'INV PPD' : 'PPD';
+    const tag = ppd.type==='PPD-Recovery Watch' ? 'PPD-RECOVERY' : (ppd.type==='Post-Peak Divergence' || ppd.type==='PPD-Rise Active' || ppd.type==='PPD-Rise Watch') ? 'PPD-RISE' : ppd.type==='Inverse Post-Peak Divergence' ? 'INV PPD' : 'PPD';
     gaugeNote.innerHTML = '<span class="ppdTag">'+tag+'</span>' + ppd.status + ' — ' + ppd.summary;
   }
 
@@ -3254,9 +3290,11 @@ function updatePpdDisplay(){
     const loCard=cards.find(c=>/Low BP/i.test(c.innerText||''));
     const effectCard=cards.find(c=>/^Effect/i.test((c.innerText||'').trim()));
 
-    const hiText = ppd.type==='Post-Peak Divergence' ? 'PPD: Density-rise watch' : 'Inv PPD: Easing-density watch';
-    const loText = ppd.type==='Post-Peak Divergence' ? 'PPD: Descending-gap watch' : 'Inv PPD: Ascending-gap watch';
-    const effectText = ppd.type==='Post-Peak Divergence' ? 'PPD active' : 'Inverse PPD active';
+    const isRecovery = ppd.type==='PPD-Recovery Watch';
+    const isRise = ppd.type==='Post-Peak Divergence' || ppd.type==='PPD-Rise Active' || ppd.type==='PPD-Rise Watch';
+    const hiText = isRecovery ? 'PPD Recovery: density still rising' : isRise ? 'PPD Rise: density rising' : 'Inv PPD: Easing-density watch';
+    const loText = isRecovery ? 'PPD Recovery: PLD burden easing' : isRise ? 'PPD Rise: PLD burden deepening' : 'Inv PPD: Ascending-gap watch';
+    const effectText = isRecovery ? 'PPD recovery phase' : isRise ? 'PPD rise/load-building phase' : 'Inverse PPD active';
 
     function addSmallLine(card, id, text){
       if(!card || document.getElementById(id)) return;

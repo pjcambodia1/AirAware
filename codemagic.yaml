@@ -15,3 +15,4 @@ workflows:
 
     artifacts:
       - android/app/build/outputs/**/*.apk
+- echo "Repo files:" && ls -la && echo "Android files:" && find android -maxdepth 3 -type f | sort

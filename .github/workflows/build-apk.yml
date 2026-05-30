@@ -26,6 +26,12 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Ensure Android platform exists
+        run: |
+          if [ ! -f android/settings.gradle ] && [ ! -f android/settings.gradle.kts ]; then
+            npx cap add android
+          fi
+
       - name: Sync Capacitor Android
         run: npx cap sync android
 
@@ -40,30 +46,15 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
-          echo "Finding Gradle project..."
-          GRADLE_ROOT=$(dirname "$(find . -name settings.gradle -o -name settings.gradle.kts | head -n 1)")
-          echo "Gradle root: $GRADLE_ROOT"
-
-          if [ -z "$GRADLE_ROOT" ] || [ "$GRADLE_ROOT" = "." ]; then
-            echo "ERROR: Could not find Android Gradle project."
-            find . -maxdepth 3 -type f | sort
-            exit 1
-          fi
-
-          cd "$GRADLE_ROOT"
-
-          if [ -f gradlew ]; then
-            chmod +x gradlew
-            ./gradlew bundleRelease
-          else
-            gradle bundleRelease
-          fi
+          cd android
+          chmod +x gradlew
+          ./gradlew bundleRelease
 
       - name: Locate AAB
         run: |
-          find . -name "*.aab" -type f
+          find android/app/build/outputs/bundle -name "*.aab" -type f
           mkdir -p release-output
-          cp "$(find . -name "*.aab" -type f | head -n 1)" release-output/AirAware-release.aab
+          cp "$(find android/app/build/outputs/bundle -name "*.aab" -type f | head -n 1)" release-output/AirAware-release.aab
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4

@@ -194,13 +194,13 @@ jobs:
 
           "$BUILD_TOOLS/apksigner" verify --verbose "$SIGNED_APK"
 
-      - name: Verify signed APK output
+      - name: Verify signed AAB output
         run: |
-          ls -lh android/app/build/outputs/apk/release/
-          test -f android/app/build/outputs/apk/release/AirAware-release-signed.apk
+          ls -lh android/app/build/outputs/bundle/release/
+          test -f android/app/build/outputs/bundle/release/AirAware-release-signed.aab
 
-      - name: Upload signed APK artifact
+      - name: Upload signed AAB artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AirAware-release-signed-apk
-          path: android/app/build/outputs/apk/release/AirAware-release-signed.apk
+          name: AirAware-release-signed-aab
+          path: android/app/build/outputs/bundle/release/AirAware-release-signed.aab

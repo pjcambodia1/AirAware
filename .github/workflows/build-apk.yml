@@ -170,7 +170,7 @@ jobs:
       - name: Build release APK
         run: |
           cd android
-          ./gradlew assembleRelease
+          ./gradlew bundleRelease
 
       - name: Sign release APK manually
         run: |

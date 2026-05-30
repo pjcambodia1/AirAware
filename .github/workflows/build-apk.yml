@@ -42,7 +42,7 @@ jobs:
           test -f android/app/airaware-release.keystore
 
       - name: Make Gradle executable
-        run: chmod +x android/gradlew
+        run: chmod +x android/gradlew.bat || true
 
       - name: Build signed release AAB
         working-directory: android

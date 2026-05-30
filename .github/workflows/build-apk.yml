@@ -1,0 +1,64 @@
+name: Build AAB
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build AirAware Signed AAB
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Sync Capacitor Android
+        run: npx cap sync android
+
+      - name: Decode Android keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/airaware-release.keystore
+
+      - name: Verify keystore exists
+        run: |
+          ls -lh android/app/airaware-release.keystore
+          test -f android/app/airaware-release.keystore
+
+      - name: Make Gradle executable
+        run: chmod +x android/gradlew
+
+      - name: Build signed release AAB
+        working-directory: android
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: ./gradlew bundleRelease
+
+      - name: Verify signed AAB output
+        run: |
+          ls -lh android/app/build/outputs/bundle/release/
+          test -f android/app/build/outputs/bundle/release/app-release.aab
+
+      - name: Upload signed AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AirAware-release-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab

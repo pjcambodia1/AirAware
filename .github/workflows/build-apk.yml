@@ -36,28 +36,32 @@ jobs:
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/airaware-release.keystore
 
-      - name: Verify keystore exists
-        run: |
-          ls -lh android/app/airaware-release.keystore
-          test -f android/app/airaware-release.keystore
-
-      - name: Build signed release AAB
+      - name: Build release AAB
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew bundleRelease
+          if [ -f android/gradlew ]; then
+            chmod +x android/gradlew
+            cd android
+            ./gradlew bundleRelease
+          elif [ -f gradlew ]; then
+            chmod +x gradlew
+            ./gradlew -p android bundleRelease
+          else
+            cd android
+            gradle bundleRelease
+          fi
 
-      - name: Verify signed AAB output
+      - name: Locate AAB
         run: |
-          ls -lh android/app/build/outputs/bundle/release/
-          test -f android/app/build/outputs/bundle/release/app-release.aab
+          find android/app/build/outputs/bundle -name "*.aab" -type f
+          mkdir -p release-output
+          cp $(find android/app/build/outputs/bundle -name "*.aab" -type f | head -n 1) release-output/AirAware-release.aab
 
-      - name: Upload signed AAB artifact
+      - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
           name: AirAware-release-aab
-          path: android/app/build/outputs/bundle/release/app-release.aab
+          path: release-output/AirAware-release.aab

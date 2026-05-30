@@ -41,16 +41,15 @@ jobs:
           ls -lh android/app/airaware-release.keystore
           test -f android/app/airaware-release.keystore
 
-      - name: Make Gradle executable
-        run: chmod +x android/gradlew.bat || true
-
       - name: Build signed release AAB
-        working-directory: android
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-        run: ./gradlew bundleRelease
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew bundleRelease
 
       - name: Verify signed AAB output
         run: |

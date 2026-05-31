@@ -52,7 +52,7 @@ jobs:
             cd android
             ./gradlew bundleRelease
           else
-            gradle -p android/app bundleRelease
+            gradle -p android bundleRelease
           fi
 
       - name: Sign AAB

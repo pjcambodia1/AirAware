@@ -140,9 +140,7 @@ jobs:
 
       - name: Build release AAB
         run: |
-          chmod +x android/gradlew
-          cd android
-          ./gradlew bundleRelease
+          gradle -p android bundleRelease
 
       - name: Sign AAB
         run: |

@@ -26,40 +26,125 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-
-      - name: Install dependencies
+      - name: Install npm dependencies
         run: npm install
 
       - name: Sync Capacitor Android
         run: npx cap sync android
 
+      - name: Restore AndroidManifest permissions
+        run: |
+          mkdir -p android/app/src/main
+          cat > android/app/src/main/AndroidManifest.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+              <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+              <uses-permission android:name="android.permission.CAMERA" />
+
+              <uses-feature android:name="android.hardware.camera" android:required="false" />
+              <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+              <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+
+              <application
+                  android:allowBackup="true"
+                  android:icon="@mipmap/ic_launcher"
+                  android:roundIcon="@mipmap/ic_launcher_round"
+                  android:label="AirAware"
+                  android:supportsRtl="true"
+                  android:theme="@style/AppTheme"
+                  android:usesCleartextTraffic="true">
+
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true"
+                      android:label="AirAware"
+                      android:theme="@style/AppTheme.NoActionBarLaunch"
+                      android:launchMode="singleTask"
+                      android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+      - name: Restore MainActivity
+        run: |
+          mkdir -p android/app/src/main/java/com/airaware/app
+          cat > android/app/src/main/java/com/airaware/app/MainActivity.java <<'EOF'
+          package com.airaware.app;
+
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {}
+          EOF
+
+      - name: Restore Android resources
+        run: |
+          mkdir -p android/app/src/main/res/values
+          mkdir -p android/app/src/main/res/xml
+
+          cat > android/app/src/main/res/values/strings.xml <<'EOF'
+          <resources>
+              <string name="app_name">AirAware</string>
+              <string name="title_activity_main">AirAware</string>
+              <string name="package_name">com.airaware.app</string>
+              <string name="custom_url_scheme">com.airaware.app</string>
+          </resources>
+          EOF
+
+          cat > android/app/src/main/res/xml/file_paths.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <paths xmlns:android="http://schemas.android.com/apk/res/android">
+              <external-path name="external_files" path="." />
+          </paths>
+          EOF
+
+      - name: Force install AirAware launcher icon
+        run: |
+          test -f www/airaware-icon.png
+
+          rm -rf android/app/src/main/res/mipmap-anydpi-v26
+
+          mkdir -p android/app/src/main/res/mipmap-mdpi
+          mkdir -p android/app/src/main/res/mipmap-hdpi
+          mkdir -p android/app/src/main/res/mipmap-xhdpi
+          mkdir -p android/app/src/main/res/mipmap-xxhdpi
+          mkdir -p android/app/src/main/res/mipmap-xxxhdpi
+
+          cp www/airaware-icon.png android/app/src/main/res/mipmap-mdpi/ic_launcher.png
+          cp www/airaware-icon.png android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png
+          cp www/airaware-icon.png android/app/src/main/res/mipmap-hdpi/ic_launcher.png
+          cp www/airaware-icon.png android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png
+          cp www/airaware-icon.png android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
+          cp www/airaware-icon.png android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png
+          cp www/airaware-icon.png android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+          cp www/airaware-icon.png android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png
+          cp www/airaware-icon.png android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+          cp www/airaware-icon.png android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png
+
       - name: Decode Android keystore
         run: |
-          mkdir -p android/app
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/airaware-release.keystore
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/airaware-release.keystore
           ls -lh android/app/airaware-release.keystore
 
-      - name: Build release AAB
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      - name: Export signing environment variables
         run: |
-          if [ -f android/gradlew ]; then
-            chmod +x android/gradlew
-            cd android
-            ./gradlew bundleRelease
-          else
-            gradle -p android bundleRelease
-          fi
+          echo "KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+          echo "KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}" >> $GITHUB_ENV
+          echo "KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> $GITHUB_ENV
+
+      - name: Build release AAB
+        run: |
+          chmod +x android/gradlew
+          cd android
+          ./gradlew bundleRelease
 
       - name: Sign AAB
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
           jarsigner \
             -verbose \
@@ -74,15 +159,10 @@ jobs:
       - name: Verify signed AAB
         run: |
           jarsigner -verify -verbose -certs android/app/build/outputs/bundle/release/app-release.aab
+          ls -lh android/app/build/outputs/bundle/release/app-release.aab
 
-      - name: Prepare AAB artifact
-        run: |
-          mkdir -p release-output
-          cp android/app/build/outputs/bundle/release/app-release.aab release-output/AirAware-release.aab
-          ls -lh release-output/AirAware-release.aab
-
-      - name: Upload AAB artifact
+      - name: Upload signed AAB artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AirAware-release-aab
-          path: release-output/AirAware-release.aab
+          name: AirAware-release-signed-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab

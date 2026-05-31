@@ -1,11 +1,11 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com.airaware.app"
+    namespace "com.airtrueiq.airaware"
     compileSdkVersion 35
 
     defaultConfig {
-        applicationId "com.airaware.app"
+        applicationId "com.airtrueiq.airaware"
         minSdkVersion 24
         targetSdkVersion 35
         versionCode 1

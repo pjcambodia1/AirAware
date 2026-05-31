@@ -52,6 +52,19 @@ jobs:
           cd android
           chmod +x gradlew
           ./gradlew bundleRelease
+                - name: Sign AAB
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          jarsigner \
+            -verbose \
+            -sigalg SHA256withRSA \
+            -digestalg SHA-256 \
+            -keystore android/app/airaware-release.keystore \
+            -storepass "$KEYSTORE_PASSWORD" \
+            android/app/build/outputs/bundle/release/app-release.aab \
+            "$KEY_ALIAS"
 
       - name: Verify AAB exists
         run: |

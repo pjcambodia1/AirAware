@@ -26,15 +26,8 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - name: Install npm dependencies
+      - name: Install dependencies
         run: npm install
-
-      - name: Add Android platform if missing
-        run: |
-          if [ ! -f "android/gradlew" ]; then
-            rm -rf android
-            npx cap add android
-          fi
 
       - name: Sync Capacitor Android
         run: npx cap sync android
@@ -43,7 +36,7 @@ jobs:
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/airaware-release.keystore
 
-      - name: Build signed release AAB
+      - name: Build release AAB
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
@@ -52,7 +45,8 @@ jobs:
           cd android
           chmod +x gradlew
           ./gradlew bundleRelease
-                - name: Sign AAB
+
+      - name: Sign AAB
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
@@ -66,13 +60,18 @@ jobs:
             android/app/build/outputs/bundle/release/app-release.aab \
             "$KEY_ALIAS"
 
-      - name: Verify AAB exists
+      - name: Verify signed AAB
         run: |
-          ls -lh android/app/build/outputs/bundle/release/
-          test -f android/app/build/outputs/bundle/release/app-release.aab
+          jarsigner -verify \
+            android/app/build/outputs/bundle/release/app-release.aab
+
+      - name: Prepare AAB artifact
+        run: |
+          mkdir -p release-output
+          cp android/app/build/outputs/bundle/release/app-release.aab release-output/AirAware-release.aab
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
           name: AirAware-release-aab
-          path: android/app/build/outputs/bundle/release/app-release.aab
+          path: release-output/AirAware-release.aab

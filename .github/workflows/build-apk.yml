@@ -26,6 +26,9 @@ jobs:
           distribution: temurin
           java-version: 21
 
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
       - name: Install dependencies
         run: npm install
 
@@ -34,7 +37,9 @@ jobs:
 
       - name: Decode Android keystore
         run: |
+          mkdir -p android/app
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/airaware-release.keystore
+          ls -lh android/app/airaware-release.keystore
 
       - name: Build release AAB
         env:
@@ -42,13 +47,18 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew bundleRelease
+          if [ -f android/gradlew ]; then
+            chmod +x android/gradlew
+            cd android
+            ./gradlew bundleRelease
+          else
+            gradle -p android/app bundleRelease
+          fi
 
       - name: Sign AAB
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
           jarsigner \
@@ -57,18 +67,19 @@ jobs:
             -digestalg SHA-256 \
             -keystore android/app/airaware-release.keystore \
             -storepass "$KEYSTORE_PASSWORD" \
+            -keypass "$KEY_PASSWORD" \
             android/app/build/outputs/bundle/release/app-release.aab \
             "$KEY_ALIAS"
 
       - name: Verify signed AAB
         run: |
-          jarsigner -verify \
-            android/app/build/outputs/bundle/release/app-release.aab
+          jarsigner -verify -verbose -certs android/app/build/outputs/bundle/release/app-release.aab
 
       - name: Prepare AAB artifact
         run: |
           mkdir -p release-output
           cp android/app/build/outputs/bundle/release/app-release.aab release-output/AirAware-release.aab
+          ls -lh release-output/AirAware-release.aab
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4

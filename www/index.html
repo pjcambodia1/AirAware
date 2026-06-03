@@ -269,6 +269,27 @@ body{padding-top:calc(var(--apkSafeTop) + env(safe-area-inset-top, 0px));box-siz
 </head>
 <body>
 
+<script>
+const DISTRIBUTION_CHANNEL = "google_play";
+// "google_play" OR "website_apk"
+
+function shouldRequireLicense(){
+  return DISTRIBUTION_CHANNEL === "website_apk";
+}
+
+function initializeLicenseGate(){
+  const gate = document.getElementById('licenseGateBack');
+  if(!gate) return;
+
+  if(shouldRequireLicense()){
+    gate.classList.add('active');
+  } else {
+    gate.classList.remove('active');
+  }
+}
+</script>
+
+
 
 <!-- V82R15_LICENSE_GATE -->
 <div class="licenseGateBack" id="licenseGateBack" aria-modal="true" role="dialog">
@@ -3453,5 +3474,9 @@ function updatePpdDisplay(){
 })();
 </script>
 
+
+<script>
+initializeLicenseGate();
+</script>
 </body>
 </html>

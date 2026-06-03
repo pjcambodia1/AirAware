@@ -269,27 +269,6 @@ body{padding-top:calc(var(--apkSafeTop) + env(safe-area-inset-top, 0px));box-siz
 </head>
 <body>
 
-<script>
-const DISTRIBUTION_CHANNEL = "google_play";
-// "google_play" OR "website_apk"
-
-function shouldRequireLicense(){
-  return DISTRIBUTION_CHANNEL === "website_apk";
-}
-
-function initializeLicenseGate(){
-  const gate = document.getElementById('licenseGateBack');
-  if(!gate) return;
-
-  if(shouldRequireLicense()){
-    gate.classList.add('active');
-  } else {
-    gate.classList.remove('active');
-  }
-}
-</script>
-
-
 
 <!-- V82R15_LICENSE_GATE -->
 <div class="licenseGateBack" id="licenseGateBack" aria-modal="true" role="dialog">
@@ -353,7 +332,7 @@ function initializeLicenseGate(){
     <button id="locationBtn" onclick="loadLocationFromFields()">Load Weather for Typed Location</button>
     <button class="light" onclick="useGps()">Use Current Location / Phone GPS</button>
     <div class="row">
-      <button class="light" onclick="loadPresetChiclayo()">Preset: Chiclayo, Peru</button>
+      <button class="light" id="presetCityBtn" onclick="loadPresetChiclayo()">Preset: Chiclayo, Peru</button>
       <button class="light" onclick="testApi()">Test API only</button>
     </div>
     <div class="sourcePanel">
@@ -2417,12 +2396,118 @@ function updateLocationButton(){
   btn.innerText = label ? "Load Weather for " + label : "Load Weather for Typed Location";
 }
 function locationEnter(e){ if(e.key === "Enter") loadLocationFromFields(); }
+function getSavedPresetCity(){
+  try{
+    const raw = localStorage.getItem("airawarePresetCity");
+    if(!raw) return null;
+    const data = JSON.parse(raw);
+    if(!data || !data.city || !data.country) return null;
+    return {
+      city: String(data.city || "").trim(),
+      stateRegion: String(data.stateRegion || "").trim(),
+      country: String(data.country || "").trim()
+    };
+  }catch(e){
+    return null;
+  }
+}
+
+function getDefaultPresetCity(){
+  return { city:"Chiclayo", stateRegion:"Lambayeque", country:"Peru" };
+}
+
+function updatePresetButtonLabel(){
+  const btn = document.getElementById("presetCityBtn");
+  if(!btn) return;
+  const preset = getSavedPresetCity() || getDefaultPresetCity();
+  btn.textContent = "Preset: " + preset.city + ", " + preset.country;
+}
+
 function loadPresetChiclayo(){
-  document.getElementById("city").value="Chiclayo";
-  document.getElementById("stateRegion").value="Lambayeque";
-  document.getElementById("country").value="Peru";
+  const preset = getSavedPresetCity() || getDefaultPresetCity();
+  document.getElementById("city").value = preset.city;
+  document.getElementById("stateRegion").value = preset.stateRegion;
+  document.getElementById("country").value = preset.country;
   updateLocationButton();
   loadLocationFromFields();
+}
+
+function saveCurrentLocationAsPreset(){
+  const cityEl = document.getElementById("city");
+  const stateEl = document.getElementById("stateRegion");
+  const countryEl = document.getElementById("country");
+
+  const city = String(cityEl?.value || "").trim();
+  const stateRegion = String(stateEl?.value || "").trim();
+  const country = String(countryEl?.value || "").trim();
+
+  if(!city || !country){
+    alert("Load or type a city and country first, then hold the preset button for 3 seconds.");
+    return;
+  }
+
+  const ok = confirm("Set " + city + ", " + country + " as your preset city?");
+  if(!ok) return;
+
+  try{
+    localStorage.setItem("airawarePresetCity", JSON.stringify({
+      city,
+      stateRegion,
+      country,
+      savedAt: new Date().toISOString()
+    }));
+    updatePresetButtonLabel();
+    alert("Preset updated to " + city + ", " + country + ".");
+  }catch(e){
+    alert("Preset could not be saved on this device.");
+  }
+}
+
+function initPresetLongPress(){
+  const btn = document.getElementById("presetCityBtn");
+  if(!btn || btn.dataset.longPressReady === "1") return;
+  btn.dataset.longPressReady = "1";
+
+  let timer = null;
+  let longPressTriggered = false;
+
+  const start = function(ev){
+    longPressTriggered = false;
+    clearTimeout(timer);
+    timer = setTimeout(function(){
+      longPressTriggered = true;
+      saveCurrentLocationAsPreset();
+    }, 3000);
+  };
+
+  const cancel = function(ev){
+    clearTimeout(timer);
+    timer = null;
+  };
+
+  btn.addEventListener("touchstart", start, {passive:true});
+  btn.addEventListener("touchend", cancel, {passive:true});
+  btn.addEventListener("touchcancel", cancel, {passive:true});
+  btn.addEventListener("mousedown", start);
+  btn.addEventListener("mouseup", cancel);
+  btn.addEventListener("mouseleave", cancel);
+
+  // Prevent accidental normal click immediately after a completed long press.
+  btn.addEventListener("click", function(ev){
+    if(longPressTriggered){
+      ev.preventDefault();
+      ev.stopPropagation();
+      longPressTriggered = false;
+    }
+  }, true);
+
+  updatePresetButtonLabel();
+}
+
+if(document.readyState === "loading"){
+  document.addEventListener("DOMContentLoaded", initPresetLongPress);
+}else{
+  initPresetLongPress();
 }
 function normText(x){ return String(x||"").trim().toLowerCase(); }
 const US_STATE_ALIASES={"al":"alabama","ak":"alaska","az":"arizona","ar":"arkansas","ca":"california","co":"colorado","ct":"connecticut","de":"delaware","fl":"florida","ga":"georgia","hi":"hawaii","id":"idaho","il":"illinois","in":"indiana","ia":"iowa","ks":"kansas","ky":"kentucky","la":"louisiana","me":"maine","md":"maryland","ma":"massachusetts","mi":"michigan","mn":"minnesota","ms":"mississippi","mo":"missouri","mt":"montana","ne":"nebraska","nv":"nevada","nh":"new hampshire","nj":"new jersey","nm":"new mexico","ny":"new york","nc":"north carolina","nd":"north dakota","oh":"ohio","ok":"oklahoma","or":"oregon","pa":"pennsylvania","ri":"rhode island","sc":"south carolina","sd":"south dakota","tn":"tennessee","tx":"texas","ut":"utah","vt":"vermont","va":"virginia","wa":"washington","wv":"west virginia","wi":"wisconsin","wy":"wyoming","dc":"district of columbia"};
@@ -3376,13 +3461,30 @@ function updatePpdDisplay(){
 
 
 <script>
-/* V82R15_LICENSE_GATE_JS */
+/* V82R15_LICENSE_GATE_JS - CONDITIONAL DISTRIBUTION PATCH V3
+   Strategy:
+   - Google Play AAB: no AirTrueIQ activation screen, no startup license-check.
+   - Website/Stripe APK: AirTrueIQ activation screen remains active.
+*/
 (function(){
+  const DISTRIBUTION_CHANNEL = "google_play";
+  // Allowed values:
+  //   "google_play"  = Play Store purchase/install. No license gate.
+  //   "website_apk"  = Website/Stripe APK. License gate required.
+
   const LICENSE_ENDPOINT = 'https://www.airtrueiq.com/api/license-verify';
   const LS_KEY = 'airawareLicenseKey';
   const LS_STATUS = 'airawareLicenseStatus';
   const LS_DEVICE = 'airawareDeviceId';
   const LS_LAST = 'airawareLicenseLastVerifiedAt';
+
+  function isWebsiteApkBuild(){
+    return DISTRIBUTION_CHANNEL === "website_apk";
+  }
+
+  function isGooglePlayBuild(){
+    return DISTRIBUTION_CHANNEL === "google_play";
+  }
 
   function makeDeviceId(){
     try{
@@ -3390,25 +3492,55 @@ function updatePpdDisplay(){
     }catch(e){}
     return 'AA-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,12);
   }
+
   function getDeviceId(){
     let id = localStorage.getItem(LS_DEVICE);
     if(!id){ id = makeDeviceId(); localStorage.setItem(LS_DEVICE,id); }
     return id;
   }
+
   function gate(){ return document.getElementById('licenseGateBack'); }
   function statusBox(){ return document.getElementById('licenseStatusBox'); }
   function metaBox(){ return document.getElementById('licenseMetaBox'); }
+
   function setStatus(msg, cls){
     const el=statusBox(); if(!el) return;
     el.className='licenseStatus' + (cls ? ' '+cls : '');
     el.textContent=msg;
   }
+
   function setMeta(msg){ const el=metaBox(); if(el) el.textContent=msg; }
-  function showGate(){ const g=gate(); if(g) g.classList.add('active'); }
-  function hideGate(){ const g=gate(); if(g) g.classList.remove('active'); }
-  function isVerified(){ return localStorage.getItem(LS_STATUS)==='active' && !!localStorage.getItem(LS_KEY); }
+
+  function hideGate(){
+    const g=gate();
+    if(g) g.classList.remove('active');
+  }
+
+  function showGate(){
+    // FOOLPROOF CONDITION:
+    // The activation modal is allowed to open ONLY for website/Stripe APK builds.
+    if(!isWebsiteApkBuild()){
+      hideGate();
+      return;
+    }
+    const g=gate();
+    if(g) g.classList.add('active');
+  }
+
+  function isVerified(){
+    if(isGooglePlayBuild()) return true;
+    return localStorage.getItem(LS_STATUS)==='active' && !!localStorage.getItem(LS_KEY);
+  }
 
   window.airawareLicenseInfo = function(){
+    if(isGooglePlayBuild()){
+      return {
+        licenseKey: '',
+        status: 'google_play_entitled',
+        deviceId: '',
+        lastVerifiedAt: ''
+      };
+    }
     return {
       licenseKey: localStorage.getItem(LS_KEY)||'',
       status: localStorage.getItem(LS_STATUS)||'unverified',
@@ -3418,6 +3550,13 @@ function updatePpdDisplay(){
   };
 
   window.verifyAirAwareLicense = async function(){
+    // Google Play builds never call the website license API.
+    if(isGooglePlayBuild()){
+      hideGate();
+      setStatus('Google Play install detected. No AirTrueIQ license key required.','good');
+      return;
+    }
+
     const input=document.getElementById('licenseKeyInput');
     const licenseKey=String(input?.value || localStorage.getItem(LS_KEY) || '').trim().toUpperCase();
     if(!licenseKey){ setStatus('Enter a license key first.','bad'); return; }
@@ -3450,6 +3589,10 @@ function updatePpdDisplay(){
   };
 
   window.retrySavedAirAwareLicense = function(){
+    if(isGooglePlayBuild()){
+      hideGate();
+      return;
+    }
     const saved=localStorage.getItem(LS_KEY)||'';
     const input=document.getElementById('licenseKeyInput');
     if(input) input.value=saved;
@@ -3460,23 +3603,29 @@ function updatePpdDisplay(){
     localStorage.removeItem(LS_KEY);
     localStorage.removeItem(LS_STATUS);
     localStorage.removeItem(LS_LAST);
+    if(isGooglePlayBuild()){
+      hideGate();
+      return;
+    }
     setStatus('Saved license cleared on this device. Enter license key again.','');
     showGate();
   };
 
   window.addEventListener('DOMContentLoaded',()=>{
+    if(isGooglePlayBuild()){
+      hideGate();
+      return;
+    }
+
     const input=document.getElementById('licenseKeyInput');
     const saved=localStorage.getItem(LS_KEY)||'';
     if(input) input.value=saved;
     setMeta('Device ID: '+getDeviceId());
+
     if(!isVerified()) showGate();
   });
 })();
 </script>
 
-
-<script>
-initializeLicenseGate();
-</script>
 </body>
 </html>

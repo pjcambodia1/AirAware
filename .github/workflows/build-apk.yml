@@ -83,49 +83,15 @@ jobs:
           public class MainActivity extends BridgeActivity {}
           EOF
 
-      - name: Restore Android resources
-        run: |
-          mkdir -p android/app/src/main/res/values
-          mkdir -p android/app/src/main/res/xml
-
-          cat > android/app/src/main/res/values/strings.xml <<'EOF'
-          <resources>
-              <string name="app_name">AirAware</string>
-              <string name="title_activity_main">AirAware</string>
-              <string name="package_name">com.airaware.app</string>
-              <string name="custom_url_scheme">com.airaware.app</string>
-          </resources>
-          EOF
-
-          cat > android/app/src/main/res/xml/file_paths.xml <<'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <paths xmlns:android="http://schemas.android.com/apk/res/android">
-              <external-path name="external_files" path="." />
-          </paths>
-          EOF
-
       - name: Force install AirAware launcher icon
         run: |
           test -f www/airaware-icon.png
-
           rm -rf android/app/src/main/res/mipmap-anydpi-v26
-
-          mkdir -p android/app/src/main/res/mipmap-mdpi
-          mkdir -p android/app/src/main/res/mipmap-hdpi
-          mkdir -p android/app/src/main/res/mipmap-xhdpi
-          mkdir -p android/app/src/main/res/mipmap-xxhdpi
-          mkdir -p android/app/src/main/res/mipmap-xxxhdpi
-
-          cp www/airaware-icon.png android/app/src/main/res/mipmap-mdpi/ic_launcher.png
-          cp www/airaware-icon.png android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png
-          cp www/airaware-icon.png android/app/src/main/res/mipmap-hdpi/ic_launcher.png
-          cp www/airaware-icon.png android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png
-          cp www/airaware-icon.png android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
-          cp www/airaware-icon.png android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png
-          cp www/airaware-icon.png android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
-          cp www/airaware-icon.png android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png
-          cp www/airaware-icon.png android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
-          cp www/airaware-icon.png android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png
+          for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+            mkdir -p android/app/src/main/res/mipmap-$d
+            cp www/airaware-icon.png android/app/src/main/res/mipmap-$d/ic_launcher.png
+            cp www/airaware-icon.png android/app/src/main/res/mipmap-$d/ic_launcher_round.png
+          done
 
       - name: Decode Android keystore
         run: |
@@ -138,9 +104,9 @@ jobs:
           echo "KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}" >> $GITHUB_ENV
           echo "KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> $GITHUB_ENV
 
-      - name: Build release APK and AAB
+      - name: Build unsigned APK and AAB
         run: |
-          gradle -p android assembleRelease bundleRelease
+          gradle -p android clean assembleRelease bundleRelease
 
       - name: Sign AAB
         run: |
@@ -156,13 +122,14 @@ jobs:
 
       - name: Sign APK
         run: |
-          APK_IN="android/app/build/outputs/apk/release/app-release-unsigned.apk"
+          APK_IN=$(find android/app/build/outputs/apk/release -name "*unsigned*.apk" | head -n 1)
           APK_ALIGNED="android/app/build/outputs/apk/release/AirAware-release-aligned.apk"
           APK_SIGNED="android/app/build/outputs/apk/release/AirAware-release-signed.apk"
 
           ZIPALIGN=$(find "$ANDROID_HOME/build-tools" -name zipalign | sort | tail -n 1)
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort | tail -n 1)
 
+          echo "Unsigned APK: $APK_IN"
           "$ZIPALIGN" -f -p 4 "$APK_IN" "$APK_ALIGNED"
 
           "$APKSIGNER" sign \

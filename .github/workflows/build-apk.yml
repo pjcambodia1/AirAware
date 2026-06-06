@@ -104,7 +104,7 @@ jobs:
           echo "KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}" >> $GITHUB_ENV
           echo "KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> $GITHUB_ENV
 
-      - name: Build unsigned APK and AAB
+      - name: Build release APK and AAB
         run: |
           gradle -p android clean assembleRelease bundleRelease
 
@@ -122,14 +122,24 @@ jobs:
 
       - name: Sign APK
         run: |
-          APK_IN=$(find android/app/build/outputs/apk/release -name "*unsigned*.apk" | head -n 1)
+          echo "Listing APK output folder:"
+          find android/app/build/outputs/apk/release -type f -name "*.apk" -print
+
+          APK_IN=$(find android/app/build/outputs/apk/release -type f -name "*.apk" | head -n 1)
+
+          if [ -z "$APK_IN" ]; then
+            echo "No APK file found."
+            exit 1
+          fi
+
           APK_ALIGNED="android/app/build/outputs/apk/release/AirAware-release-aligned.apk"
           APK_SIGNED="android/app/build/outputs/apk/release/AirAware-release-signed.apk"
 
           ZIPALIGN=$(find "$ANDROID_HOME/build-tools" -name zipalign | sort | tail -n 1)
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort | tail -n 1)
 
-          echo "Unsigned APK: $APK_IN"
+          echo "APK input: $APK_IN"
+
           "$ZIPALIGN" -f -p 4 "$APK_IN" "$APK_ALIGNED"
 
           "$APKSIGNER" sign \

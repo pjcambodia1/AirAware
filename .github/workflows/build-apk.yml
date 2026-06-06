@@ -1,4 +1,4 @@
-name: Build AAB
+name: Build APK and AAB
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Build AirAware Signed AAB
+    name: Build AirAware Signed APK and AAB
     runs-on: ubuntu-latest
 
     steps:
@@ -138,9 +138,9 @@ jobs:
           echo "KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}" >> $GITHUB_ENV
           echo "KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> $GITHUB_ENV
 
-      - name: Build release AAB
+      - name: Build release APK and AAB
         run: |
-          gradle -p android bundleRelease
+          gradle -p android assembleRelease bundleRelease
 
       - name: Sign AAB
         run: |
@@ -154,10 +154,41 @@ jobs:
             android/app/build/outputs/bundle/release/app-release.aab \
             "$KEY_ALIAS"
 
+      - name: Sign APK
+        run: |
+          APK_IN="android/app/build/outputs/apk/release/app-release-unsigned.apk"
+          APK_ALIGNED="android/app/build/outputs/apk/release/AirAware-release-aligned.apk"
+          APK_SIGNED="android/app/build/outputs/apk/release/AirAware-release-signed.apk"
+
+          ZIPALIGN=$(find "$ANDROID_HOME/build-tools" -name zipalign | sort | tail -n 1)
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort | tail -n 1)
+
+          "$ZIPALIGN" -f -p 4 "$APK_IN" "$APK_ALIGNED"
+
+          "$APKSIGNER" sign \
+            --ks android/app/airaware-release.keystore \
+            --ks-pass pass:"$KEYSTORE_PASSWORD" \
+            --key-pass pass:"$KEY_PASSWORD" \
+            --ks-key-alias "$KEY_ALIAS" \
+            --out "$APK_SIGNED" \
+            "$APK_ALIGNED"
+
       - name: Verify signed AAB
         run: |
           jarsigner -verify -verbose -certs android/app/build/outputs/bundle/release/app-release.aab
           ls -lh android/app/build/outputs/bundle/release/app-release.aab
+
+      - name: Verify signed APK
+        run: |
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort | tail -n 1)
+          "$APKSIGNER" verify --verbose android/app/build/outputs/apk/release/AirAware-release-signed.apk
+          ls -lh android/app/build/outputs/apk/release/AirAware-release-signed.apk
+
+      - name: Upload signed APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AirAware-release-signed-apk
+          path: android/app/build/outputs/apk/release/AirAware-release-signed.apk
 
       - name: Upload signed AAB artifact
         uses: actions/upload-artifact@v4
